@@ -1,6 +1,17 @@
 import uploadOnCloudinary from "../config/cloudinary.js";
 import Festival from "../models/Festival.js";
 
+
+
+export const getAllFestivals= async(req,res)=>{
+  try {
+    const festivals = await Festival.find();
+    res.status(200).json(festivals);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching foods", error });
+  }
+}
+
 export const getFestivalById = async (req, res) => {
   try {
     const { id } = req.params;
