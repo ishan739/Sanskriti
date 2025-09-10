@@ -75,3 +75,35 @@ export const uploadStoryImage = async (req, res) => {
 };
 
 
+
+export const uploadStoryAudio = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ message: "No audio file uploaded" });
+    }
+
+    
+    const audioUrl = await uploadOnCloudinary(req.file.path);
+
+    
+    const updatedStory = await story.findOneAndUpdate(
+      { id: Number(id) },
+      { audiourl: audioUrl },
+      { new: true }
+    );
+
+    if (!updatedStory) {
+      return res.status(404).json({ message: "Story not found" });
+    }
+
+    res.status(200).json({
+      message: "Audio uploaded successfully",
+      story: updatedStory,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
+

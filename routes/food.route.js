@@ -1,6 +1,6 @@
 import express from "express";
 
-import { upload } from "../middlewares/multer.js";
+import { uploadImage } from "../middlewares/multer.js";
 import { getAllFoods, getFoodById, getFoodsByRegion, getFoodsByType, uploadFoodImage } from "../controllers/Food.controller.js";
 import food from "../models/food.js";
 
@@ -12,6 +12,6 @@ foodrouter.get("/:id", getFoodById);
 foodrouter.get("/type/:type", getFoodsByType);
 foodrouter.get("/region/:region", getFoodsByRegion);
 
-foodrouter.post('/:id/upload-image', upload.single('image'), uploadFoodImage);
+foodrouter.post('/:id/upload-image', uploadImage.single('image'), uploadFoodImage);
 
 export default foodrouter;

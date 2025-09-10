@@ -1,11 +1,42 @@
-import multer from "multer"
-const storage=multer.diskStorage({
- destination:(req,file,cb)=>{
-    cb(null,"./public")
- },
- filename:(req,file,cb)=>{
-    cb(null,file.originalname)
- }
-})
+import multer from "multer";
 
-export const upload=multer({storage})
+// Common storage config
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "./public");
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+
+// Image upload middleware
+export const uploadImage = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    if (
+      file.mimetype.startsWith("image/")
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed!"), false);
+    }
+  },
+});
+
+// Audio upload middleware
+export const uploadAudio = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    if (
+      file.mimetype === "audio/mpeg" ||
+      file.mimetype === "audio/mp3"
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only mp3 files are allowed!"), false);
+    }
+  },
+});
+
+

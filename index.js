@@ -10,8 +10,14 @@ import festivalrouter from "./routes/festival.route.js"
 import csv from 'csvtojson';
 import foodrouter from "./routes/food.route.js"
 import story from "./models/story.js"
+import Dance from "./models/dance.js"
 import storyrouter from "./routes/story.route.js"
 import axios from "axios";
+import Music from "./models/music.js"
+import Art from "./models/art.js"
+import dancerouter from "./routes/dance.route.js"
+import artrouter from "./routes/art.route.js"
+import musicrouter from "./routes/music.route.js"
 
 
 
@@ -50,6 +56,9 @@ app.use("/api/monument", monumentrouter)
 app.use("/api/festival", festivalrouter)
 app.use("/api/food", foodrouter)
 app.use("/api/story", storyrouter)
+app.use("/api/dance", dancerouter)
+app.use("/api/art", artrouter)
+app.use("/api/music", musicrouter)
 
 
 
@@ -64,5 +73,6 @@ const startServer = async () => {
 };
 
 startServer();
+
 
 
