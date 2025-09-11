@@ -19,8 +19,14 @@ sealed class CalendarUiState {
 
 class CalendarViewModel : ViewModel() {
 
+    // --- STATE FOR MONTHLY HOLIDAYS ---
     private val _uiState = MutableStateFlow<CalendarUiState>(CalendarUiState.Empty)
     val uiState: StateFlow<CalendarUiState> = _uiState
+
+    // --- NEW: STATE FOR UPCOMING HOLIDAYS ---
+    private val _upcomingHolidaysState = MutableStateFlow<CalendarUiState>(CalendarUiState.Empty)
+    val upcomingHolidaysState: StateFlow<CalendarUiState> = _upcomingHolidaysState
+
 
     fun fetchYearHolidays(year: Int) {
         viewModelScope.launch {
@@ -48,12 +54,12 @@ class CalendarViewModel : ViewModel() {
 
     fun fetchUpcomingHolidays() {
         viewModelScope.launch {
-            _uiState.value = CalendarUiState.Loading
+            _upcomingHolidaysState.value = CalendarUiState.Loading
             try {
                 val data = RetrofitInstance.calendarApi.getUpcomingHolidays()
-                _uiState.value = CalendarUiState.Success(data)
+                _upcomingHolidaysState.value = CalendarUiState.Success(data)
             } catch (e: Exception) {
-                _uiState.value = CalendarUiState.Error(e.message ?: "Unknown error")
+                _upcomingHolidaysState.value = CalendarUiState.Error(e.message ?: "Unknown error")
             }
         }
     }

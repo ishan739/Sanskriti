@@ -203,14 +203,14 @@ private fun UltraModernNavBarItem(
                 Icon(
                     painter = painterResource(id = screen.drawableResId),
                     contentDescription = screen.title,
-                    tint = iconColor,
+                    tint = Color.Black,
                     modifier = Modifier.size(26.dp)
                 )
 
                 AnimatedVisibility(visible = isSelected) {
                     Text(
                         text = screen.title,
-                        color = textColor,
+                        color = Color.Black,
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.sp,
                         style = textStyleWithShadow

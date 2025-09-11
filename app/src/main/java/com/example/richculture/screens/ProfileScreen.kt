@@ -83,7 +83,7 @@ val dummyBadges = listOf(
 
 val dummySavedItems = listOf(
     SavedItem(R.drawable.ic_tajmahal, "Taj Mahal AR Tour", "Monument", Color(0xFFF44336)),
-    SavedItem(R.drawable.ic_arts, "Bharatanatyam Dance", "Art Form", Color(0xFF9C27B0)),
+    SavedItem(R.drawable.ic_arts_trad, "Bharatanatyam Dance", "Art Form", Color(0xFF9C27B0)),
     SavedItem(R.drawable.ic_blue_pottery, "Blue Pottery Craft", "Craft", Color(0xFF2196F3))
 )
 
@@ -137,21 +137,21 @@ fun ProfileTopAppBar(navController: NavHostController) {
     TopAppBar(
         title = {
             Column {
-                Text("My Profile", fontWeight = FontWeight.Bold)
+                Text("My Profile", fontWeight = FontWeight.Bold , color = Color.Black)
                 Text("Cultural journey dashboard", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
         },
         navigationIcon = {
             IconButton(onClick = { navController.popBackStack() }) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                Icon(Icons.Default.ArrowBack, contentDescription = "Back" , tint = Color.Black)
             }
         },
         actions = {
             IconToggleButton(checked = false, onCheckedChange = {}) {
-                Icon(Icons.Default.Settings, contentDescription = "Settings")
+                Icon(Icons.Default.Settings, contentDescription = "Settings" , tint = Color.Black)
             }
             IconToggleButton(checked = false, onCheckedChange = {}) {
-                Icon(Icons.Default.Share, contentDescription = "Share")
+                Icon(Icons.Default.Share, contentDescription = "Share" , tint = Color.Black)
             }
         },
         windowInsets = WindowInsets(0), // 🚀 remove system insets

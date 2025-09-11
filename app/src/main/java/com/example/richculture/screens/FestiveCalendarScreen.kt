@@ -16,15 +16,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -39,6 +41,7 @@ import java.time.Month
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.*
+import com.example.richculture.R
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -47,74 +50,101 @@ fun FestiveCalendarScreen(
     viewModel: CalendarViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    // ✅ NEW: Collect state for upcoming holidays
+    val upcomingUiState by viewModel.upcomingHolidaysState.collectAsState()
 
     var selectedYear by remember { mutableStateOf(LocalDate.now().year) }
     var selectedMonth by remember { mutableStateOf(LocalDate.now().month) }
 
-    // Fetch data whenever the year or month changes
+    // Fetch monthly data whenever the year or month changes
     LaunchedEffect(selectedYear, selectedMonth) {
         viewModel.fetchMonthHolidays(selectedYear, selectedMonth.value)
     }
 
+    // ✅ NEW: Fetch upcoming holidays once when the screen loads
+    LaunchedEffect(Unit) {
+        viewModel.fetchUpcomingHolidays()
+    }
+
     Scaffold(
         topBar = { CalendarTopAppBar(navController) },
-        containerColor = Color(0xFFF8F9FE) // A cooler, modern background
+        containerColor = Color.Transparent // 🔑 Transparent so gradient shows
     ) { padding ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(bottom = 24.dp)
-        ) {
-            item {
-                // Section for Year and Month selection
-                DateSelectionHeader(
-                    selectedYear = selectedYear,
-                    selectedMonth = selectedMonth,
-                    onYearChange = { newYear -> selectedYear = newYear },
-                    onMonthChange = { newMonth -> selectedMonth = newMonth }
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFFEE5B0C), // deep purple
+                            Color(0xFFF3DF17)  // bright blue
+                        ),
+                        start = Offset(0f, 0f),
+                        end = Offset(1000f, 2000f)
+                    )
                 )
-            }
+                .padding(padding)
+        ) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 24.dp)
+            ) {
+                item {
+                    DateSelectionHeader(
+                        selectedYear = selectedYear,
+                        selectedMonth = selectedMonth,
+                        onYearChange = { newYear -> selectedYear = newYear },
+                        onMonthChange = { newMonth -> selectedMonth = newMonth }
+                    )
+                }
 
-            item {
-                // Main content area that reacts to the UI state
-                AnimatedContent(
-                    targetState = uiState,
-                    label = "CalendarContentAnimation"
-                ) { state ->
-                    when (state) {
-                        is CalendarUiState.Loading -> {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 100.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
+                item {
+                    AnimatedContent(
+                        targetState = uiState,
+                        label = "CalendarContentAnimation"
+                    ) { state ->
+                        when (state) {
+                            is CalendarUiState.Loading -> {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 100.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
                             }
-                        }
-                        is CalendarUiState.Success -> {
-                            if (state.holidays.isEmpty()) {
-                                EmptyState()
-                            } else {
-                                HolidayContent(
-                                    year = selectedYear,
-                                    month = selectedMonth,
-                                    holidays = state.holidays
-                                )
+                            is CalendarUiState.Success -> {
+                                if (state.holidays.isEmpty()) {
+                                    EmptyState()
+                                } else {
+                                    HolidayContent(
+                                        year = selectedYear,
+                                        month = selectedMonth,
+                                        holidays = state.holidays
+                                    )
+                                }
                             }
+                            is CalendarUiState.Error -> {
+                                ErrorState(message = state.message)
+                            }
+                            is CalendarUiState.Empty -> { /* Initially empty */ }
                         }
-                        is CalendarUiState.Error -> {
-                            ErrorState(message = state.message)
-                        }
-                        is CalendarUiState.Empty -> {
-                            // Initially empty, data will be fetched by LaunchedEffect
-                        }
+                    }
+                }
+
+                // ✅ Upcoming Holidays Section
+                item {
+                    val upcomingState = upcomingUiState
+                    if (upcomingState is CalendarUiState.Success && upcomingState.holidays.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        UpcomingHolidaysSection(holidays = upcomingState.holidays)
                     }
                 }
             }
         }
     }
+
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -174,14 +204,13 @@ fun DateSelectionHeader(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Year Selector
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
             IconButton(onClick = { onYearChange(selectedYear - 1) }) {
-                Icon(Icons.Default.AddCircle, contentDescription = "Previous Year")
+                Icon(painter = painterResource(id = R.drawable.ic_left), contentDescription = "Previous Year")
             }
             Text(
                 text = selectedYear.toString(),
@@ -189,10 +218,9 @@ fun DateSelectionHeader(
                 fontWeight = FontWeight.Bold
             )
             IconButton(onClick = { onYearChange(selectedYear + 1) }) {
-                Icon(Icons.Default.AddCircle, contentDescription = "Next Year")
+                Icon(painter = painterResource(id = R.drawable.ic_right), contentDescription = "Next Year")
             }
         }
-        // Month Selector
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
@@ -221,7 +249,6 @@ fun CalendarView(year: Int, month: Month, holidays: List<Holiday>) {
     val holidayDates = remember(holidays) {
         holidays.mapNotNull {
             try {
-                // ✅ FIX 1: Access the .iso property inside the 'date' object
                 LocalDate.parse(it.date.iso, DateTimeFormatter.ISO_LOCAL_DATE).dayOfMonth
             } catch (e: Exception) {
                 null
@@ -238,12 +265,10 @@ fun CalendarView(year: Int, month: Month, holidays: List<Holiday>) {
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(Modifier.padding(16.dp)) {
-            // Calendar Grid Logic
             val daysInMonth = YearMonth.of(year, month).lengthOfMonth()
             val firstDayOfMonth = YearMonth.of(year, month).atDay(1).dayOfWeek.value % 7 // Sun=0
             val calendarDays = (1..daysInMonth).toList()
 
-            // Day labels (Sun, Mon, etc.)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
                 listOf("S", "M", "T", "W", "T", "F", "S").forEach {
                     Text(it, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray)
@@ -251,7 +276,6 @@ fun CalendarView(year: Int, month: Month, holidays: List<Holiday>) {
             }
             Spacer(Modifier.height(8.dp))
 
-            // Dates
             val totalCells = (daysInMonth + firstDayOfMonth + 6) / 7 * 7
             val paddedDays = List(firstDayOfMonth) { null } + calendarDays + List(totalCells - daysInMonth - firstDayOfMonth) { null }
             paddedDays.chunked(7).forEach { week ->
@@ -287,12 +311,28 @@ fun HolidayList(holidays: List<Holiday>) {
         modifier = Modifier.padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Festivals this month", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text("Festivals This Month", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         holidays.forEach { holiday ->
             HolidayCard(holiday = holiday)
         }
     }
 }
+
+// ✅ NEW: Composable for the upcoming holidays section
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun UpcomingHolidaysSection(holidays: List<Holiday>) {
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("Upcoming Festivals", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        holidays.forEach { holiday ->
+            HolidayCard(holiday = holiday) // Reusing the same card for a consistent look
+        }
+    }
+}
+
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -300,7 +340,6 @@ fun HolidayCard(holiday: Holiday) {
     val context = LocalContext.current
     val parsedDate = remember {
         try {
-            // ✅ FIX 2: Access the .iso property inside the 'date' object
             LocalDate.parse(holiday.date.iso, DateTimeFormatter.ISO_LOCAL_DATE)
         } catch (e: Exception) {
             null
@@ -345,10 +384,8 @@ fun HolidayCard(holiday: Holiday) {
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(holiday.name, fontWeight = FontWeight.Bold)
-                // ✅ FIX 3: Convert the 'type' object to a String for display
                 Text(holiday.type?.toString() ?: "Festival", fontSize = 12.sp, color = Color.Gray)
             }
-            // Add to Calendar Button
             IconButton(
                 onClick = {
                     parsedDate?.let { date ->
@@ -370,7 +407,7 @@ fun HolidayCard(holiday: Holiday) {
                     .clip(CircleShape)
                     .background(Color.Gray.copy(alpha = 0.1f))
             ) {
-                Icon(Icons.Default.AddCircle, contentDescription = "Add to Calendar", tint = Color(0xFF42A5F5))
+                Icon(painter = painterResource(id = R.drawable.ic_calendar_month), contentDescription = "Add to Calendar", tint = Color.Black)
             }
         }
     }
@@ -385,7 +422,7 @@ fun EmptyState() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Icon(Icons.Default.AddCircle, contentDescription = "", tint = Color.LightGray, modifier = Modifier.size(64.dp))
+        Icon(painter = painterResource(id = R.drawable.ic_event), contentDescription = "", tint = Color.LightGray, modifier = Modifier.size(64.dp))
         Text(
             "No Festivals Found",
             style = MaterialTheme.typography.titleLarge,
@@ -408,7 +445,7 @@ fun ErrorState(message: String) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Icon(Icons.Default.AddCircle, contentDescription = "", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(64.dp))
+        Icon(painter = painterResource(id = R.drawable.ic_event), contentDescription = "", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(64.dp))
         Text(
             "Something Went Wrong",
             style = MaterialTheme.typography.titleLarge,
