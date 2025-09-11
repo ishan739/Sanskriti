@@ -1,10 +1,13 @@
 package com.example.richculture.screens
 
-import androidx.compose.foundation.Image
+
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -19,52 +22,139 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.richculture.R
+import com.example.richculture.ViewModels.ChatViewModel
+import kotlinx.coroutines.launch
+
+// Data class to represent a single chat message for better state management
+data class ChatMessage(val text: String, val isUser: Boolean)
 
 @Composable
-fun ChatbotScreen(navController: NavController) {
+fun ChatbotScreen(
+    navController: NavController,
+    viewModel: ChatViewModel = viewModel()
+) {
+    // State from ViewModel
+    val chatResponse by viewModel.chatResponse.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
+
+    // UI State
+    var text by remember { mutableStateOf("") }
+    val conversationHistory = remember { mutableStateListOf<ChatMessage>() }
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
+    // --- IMPROVEMENT: Handle new responses and add them to the conversation history ---
+    LaunchedEffect(chatResponse) {
+        chatResponse?.let { response ->
+            conversationHistory.add(ChatMessage(response, isUser = false))
+            viewModel.clearResponse() // Clear response to prevent re-adding on recompose
+            // Auto-scroll to the new message
+            coroutineScope.launch {
+                listState.animateScrollToItem(conversationHistory.lastIndex)
+            }
+        }
+    }
+
+    // --- IMPROVEMENT: Reset chat state when the screen is first entered ---
+    LaunchedEffect(Unit) {
+        viewModel.resetChatState()
+        conversationHistory.clear()
+    }
+
     val quickQuestions = listOf(
-        "Tell me about Taj Mahal", "What festivals are celebrated in December?",
-        "Explain Bharatanatyam dance", "Traditional food of Rajasthan",
-        "Heritage sites in Kerala", "Significance of Diwali"
+        "Tell me about Taj Mahal",
+        "What festivals are celebrated in December?",
+        "Traditional food of Rajasthan"
     )
 
-    // ✅ THE STRUCTURE IS CHANGED HERE
-    // We now use a Column to manually position the content and the input field.
     Scaffold(
-        topBar = { ChatbotHeader(navController) },
-        containerColor = Color(0xFFF0F2F5)
+        topBar = { ChatbotHeader(navController) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding) // Apply padding from the Scaffold
+                .padding(innerPadding)
+                // --- UI POLISH: A subtle gradient background is more visually appealing ---
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color(0xFFF4F6FC), Color(0xFFE9EBFA))
+                    )
+                )
+                // --- FIX 1: This prevents the input field from overlapping the system navigation bar ---
+                .navigationBarsPadding()
+                // --- FIX 2: This makes the UI adjust when the keyboard opens/closes ---
+                .imePadding()
         ) {
-            // The LazyColumn for messages now takes up the remaining space, pushing the input field down.
             LazyColumn(
+                state = listState,
                 modifier = Modifier
-                    .weight(1f) // ✅ THIS IS THE KEY CHANGE
-                    .padding(horizontal = 16.dp)
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    AssistantWelcomeCard(quickQuestions)
-                    Spacer(modifier = Modifier.height(16.dp))
+                // The welcome card now only shows if the conversation is empty
+                if (conversationHistory.isEmpty()) {
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        AssistantWelcomeCard(
+                            quickQuestions = quickQuestions,
+                            onQuestionClick = { question ->
+                                text = question // Correctly places question in the text field
+                            }
+                        )
+                    }
                 }
-                // Your chat messages would go here
+
+                // --- IMPROVEMENT: Display the entire conversation history ---
+                items(conversationHistory) { message ->
+                    ChatBubble(isUser = message.isUser, message = message.text)
+                }
+
+                // Display a typing indicator when loading
+                if (isLoading) {
+                    item {
+                        ChatBubble(isUser = false, message = "Typing...")
+                    }
+                }
+
+                // Display any errors inline
+                error?.let { err ->
+                    item {
+                        Text(
+                            text = "Error: $err",
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+                }
             }
 
-            // The MessageInputField is now the last item in the Column, placing it at the bottom.
-            MessageInputField()
+            // Input Field
+            MessageInputField(
+                text = text,
+                onTextChange = { text = it },
+                onSendClick = {
+                    if (text.isNotBlank()) {
+                        // Immediately add user message to history for a responsive feel
+                        conversationHistory.add(ChatMessage(text, isUser = true))
+                        viewModel.sendMessage(text, "conversation_123")
+                        text = ""
+                        // Auto-scroll when the user sends a message
+                        coroutineScope.launch {
+                            listState.animateScrollToItem(conversationHistory.lastIndex)
+                        }
+                    }
+                }
+            )
         }
     }
 }
-
 
 // --- NO CHANGES NEEDED FOR ChatbotHeader OR OTHER COMPOSABLES IN THIS FILE ---
 
@@ -102,28 +192,25 @@ fun ChatbotHeader(navController: NavController) {
 }
 
 @Composable
-fun AssistantWelcomeCard(quickQuestions: List<String>) {
+fun AssistantWelcomeCard(
+    quickQuestions: List<String>,
+    onQuestionClick: (String) -> Unit
+) {
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(4.dp)
+        elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(painter = painterResource(id = R.drawable.ic_chatbot_avatar), contentDescription = "Assistant Avatar", modifier = Modifier.size(24.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Cultural Assistant", fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.weight(1f))
-                Image(painter = painterResource(id = R.drawable.ic_volume), contentDescription = "Text to Speech", modifier = Modifier.size(24.dp))
-            }
+            Text("Cultural Assistant", fontWeight = FontWeight.Bold, fontSize = 18.sp)
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Namaste! 🙏 I'm your cultural heritage assistant. I can help you with:")
+            Text("Namaste! 🙏 I can help you with:")
             Spacer(modifier = Modifier.height(16.dp))
             Text("Quick Questions", fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 quickQuestions.forEach { question ->
-                    QuickQuestionItem(questionText = question)
+                    QuickQuestionItem(questionText = question, onClick = onQuestionClick)
                 }
             }
         }
@@ -131,63 +218,125 @@ fun AssistantWelcomeCard(quickQuestions: List<String>) {
 }
 
 @Composable
-fun QuickQuestionItem(questionText: String) {
+fun QuickQuestionItem(questionText: String, onClick: (String) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFFF0F2F5))
-            .clickable { /* Handle question click */ }
+            .background(Color.White)
+            .clickable { onClick(questionText) }
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(Icons.Default.Search, contentDescription = "Ask", tint = Color.Gray, modifier = Modifier.size(20.dp))
+        Icon(
+            Icons.Default.Search,
+            contentDescription = "Ask",
+            tint = Color(0xFF8E2DE2),
+            modifier = Modifier.size(18.dp)
+        )
         Spacer(modifier = Modifier.width(12.dp))
         Text(questionText, color = Color.DarkGray)
     }
 }
 
-@Composable
-fun MessageInputField() {
-    var text by remember { mutableStateOf("") }
-    var isMicEnabled by remember { mutableStateOf(true) }
 
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(bottom = 63.dp),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+@Composable
+fun MessageInputField(
+    text: String,
+    onTextChange: (String) -> Unit,
+    onSendClick: () -> Unit
+) {
+    // --- UI POLISH: Enhanced Glassmorphic effect with a subtle border ---
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 16.dp, bottom = 12.dp, top = 8.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(32.dp),
+            elevation = CardDefaults.cardElevation(0.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White.copy(alpha = 0.5f) // Slightly less transparent
+            ),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.7f))
         ) {
-            TextField(
-                value = text,
-                onValueChange = { text = it },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Ask about monuments, festivals, ...", color = Color.Gray) },
-                colors = TextFieldDefaults.colors(
-                    focusedTextColor = Color.Black,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    cursorColor = MaterialTheme.colorScheme.primary,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent
-                ),
-                trailingIcon = {
-                    IconButton(onClick = { isMicEnabled = !isMicEnabled }) {
-                        Image(painter = painterResource(id = R.drawable.ic_mic), contentDescription = if (isMicEnabled) "Voice Input" else "Voice Muted")
-                    }
-                }
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            IconButton(
-                onClick = { /* Handle send message */ },
-                modifier = Modifier.size(40.dp).clip(CircleShape).background(Brush.linearGradient(colors = listOf(Color(0xFF8E2DE2), Color(0xFF4A00E0))))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.White)
+                TextField(
+                    value = text,
+                    onValueChange = onTextChange,
+                    modifier = Modifier.weight(1f),
+                    placeholder = {
+                        Text(
+                            "Ask about monuments, festivals...",
+                            color = Color.Gray.copy(alpha = 0.9f)
+                        )
+                    },
+                    colors = TextFieldDefaults.colors(
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black,
+                        cursorColor = Color(0xFF8E2DE2),
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    ),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(
+                    onClick = onSendClick,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(Color(0xFF8E2DE2), Color(0xFF4A00E0))
+                            )
+                        )
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Send",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
+        }
+    }
+}
+
+@Composable
+fun ChatBubble(isUser: Boolean, message: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
+    ) {
+        Card(
+            shape = RoundedCornerShape(
+                topStart = 16.dp,
+                topEnd = 16.dp,
+                bottomStart = if (isUser) 16.dp else 0.dp,
+                bottomEnd = if (isUser) 0.dp else 16.dp
+            ),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isUser) Color(0xFF6A1B9A) else Color.White
+            ),
+            modifier = Modifier.widthIn(max = 280.dp),
+            elevation = CardDefaults.cardElevation(2.dp)
+        ) {
+            Text(
+                text = message,
+                modifier = Modifier.padding(12.dp),
+                color = if (isUser) Color.White else Color.Black
+            )
         }
     }
 }
