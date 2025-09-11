@@ -18,6 +18,7 @@ import Art from "./models/art.js"
 import dancerouter from "./routes/dance.route.js"
 import artrouter from "./routes/art.route.js"
 import musicrouter from "./routes/music.route.js"
+import calenderrouter from "./routes/calender.route.js"
 
 
 
@@ -59,6 +60,7 @@ app.use("/api/story", storyrouter)
 app.use("/api/dance", dancerouter)
 app.use("/api/art", artrouter)
 app.use("/api/music", musicrouter)
+app.use("/api/cal", calenderrouter)
 
 
 
