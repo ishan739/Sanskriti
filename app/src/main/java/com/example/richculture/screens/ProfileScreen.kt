@@ -222,7 +222,7 @@ fun UserInfoCard(profile: UserProfile) {
 
 @Composable
 fun ProgressTrackerCard(progress: ProgressInfo) {
-    Sectionn(title = "Progress Tracker") {
+    Section(title = "Progress Tracker") {
         Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.7f))
@@ -255,7 +255,7 @@ fun ProgressTrackerCard(progress: ProgressInfo) {
 
 @Composable
 fun AchievementsSection(badges: List<Badge>) {
-    Sectionn(title = "Achievements & Badges") {
+    Section(title = "Achievements & Badges") {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             badges.chunked(2).forEach { rowItems ->
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -304,7 +304,7 @@ fun RecentOrdersSection(orders: List<RecentOrder>) {
 
 @Composable
 fun SettingsSection() {
-    Sectionn(title = "Settings") {
+    Section(title = "Settings") {
         Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.7f))

@@ -1,9 +1,13 @@
 package com.example.richculture.screens
 
+import android.content.Intent
 import android.os.Build
+import android.provider.CalendarContract
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -13,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddCircle
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,105 +24,105 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.richculture.Data.Holiday
+import com.example.richculture.ViewModels.CalendarUiState
+import com.example.richculture.ViewModels.CalendarViewModel
+import java.time.LocalDate
 import java.time.Month
 import java.time.YearMonth
-
-// --- New Data Models for the Redesigned Screen ---
-
-data class Festivala(
-    val day: Int,
-    val name: String,
-    val description: String,
-    val category: String,
-    val color: Color
-)
-
-data class UpcomingEvent(
-    val title: String,
-    val date: String,
-    val location: String,
-    val type: String
-)
-
-// --- Comprehensive Dummy Data for Interaction ---
-
-@RequiresApi(Build.VERSION_CODES.O)
-val festivalDataByMonth = mapOf(
-    Month.JANUARY to listOf(
-        Festivala(14, "Makar Sankranti", "Harvest festival", "Major Festival", Color(0xFFFFF176)),
-        Festivala(26, "Republic Day", "National holiday", "National", Color(0xFF81C784))
-    ),
-    Month.FEBRUARY to listOf(
-        Festivala(12, "Vasant Panchami", "Festival of spring", "Religious", Color(0xFFFFF176)),
-        Festivala(20, "Shivaratri", "Night of Shiva", "Major Festival", Color(0xFFF06292))
-    ),
-    Month.MARCH to listOf(
-        Festivala(24, "Holi", "Festival of colors", "Major Festival", Color(0xFFF06292)),
-        Festivala(25, "Holika Dahan", "Holi bonfire", "Religious", Color(0xFFFFB74D))
-    ),
-    Month.OCTOBER to listOf(
-        Festivala(12, "Dussehra", "Victory of good over evil", "Major Festival", Color(0xFFFFB74D))
-    ),
-    Month.NOVEMBER to listOf(
-        Festivala(1, "Diwali", "Festival of lights", "Major Festival", Color(0xFFFFF176)),
-        Festivala(3, "Govardhan Puja", "Mountain lifting celebration", "Religious", Color(0xFF81C784)),
-        Festivala(4, "Bhai Dooj", "Brother-sister bond", "Family", Color(0xFFCE93D8)),
-        Festivala(15, "Karva Chauth", "Fast for husband's long life", "Regional", Color(0xFFF48FB1))
-    )
-)
-
-val upcomingEvents = listOf(
-    UpcomingEvent("Diwali Preparation Workshop", "Oct 18, 2024 • 6:00 PM", "Cultural Center", "Workshop"),
-    UpcomingEvent("Rangoli Competition", "Oct 23, 2024 • 10:00 AM", "Community Hall", "Competition")
-)
-
+import java.time.format.DateTimeFormatter
+import java.util.*
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun FestiveCalendarScreen(navController: NavController) {
-    var selectedMonth by remember { mutableStateOf(Month.FEBRUARY) }
-    val festivalsForSelectedMonth = festivalDataByMonth[selectedMonth] ?: emptyList()
+fun FestiveCalendarScreen(
+    navController: NavController,
+    viewModel: CalendarViewModel = viewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    var selectedYear by remember { mutableStateOf(LocalDate.now().year) }
+    var selectedMonth by remember { mutableStateOf(LocalDate.now().month) }
+
+    // Fetch data whenever the year or month changes
+    LaunchedEffect(selectedYear, selectedMonth) {
+        viewModel.fetchMonthHolidays(selectedYear, selectedMonth.value)
+    }
 
     Scaffold(
         topBar = { CalendarTopAppBar(navController) },
-        containerColor = Color(0xFFFFF8F5) // Soft off-white background
+        containerColor = Color(0xFFF8F9FE) // A cooler, modern background
     ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(
-                    top = padding.calculateTopPadding(), // ✅ only top padding from scaffold
-                ),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(bottom = 80.dp) // ✅ manual bottom padding (space above bottom nav)
-        ){
+                .padding(padding),
+            contentPadding = PaddingValues(bottom = 24.dp)
+        ) {
             item {
-                Sectionn(title = "Select Month") {
-                    MonthSelector(selectedMonth = selectedMonth, onMonthSelected = { selectedMonth = it })
-                }
-            }
-            item {
-                CalendarView(
-                    month = selectedMonth,
-                    year = 2024,
-                    festivals = festivalsForSelectedMonth
+                // Section for Year and Month selection
+                DateSelectionHeader(
+                    selectedYear = selectedYear,
+                    selectedMonth = selectedMonth,
+                    onYearChange = { newYear -> selectedYear = newYear },
+                    onMonthChange = { newMonth -> selectedMonth = newMonth }
                 )
             }
+
             item {
-                Sectionn(title = "${selectedMonth.name.lowercase().capitalize()} Festivals") {
-                    FestivalList(festivals = festivalsForSelectedMonth)
-                }
-            }
-            item {
-                Sectionn(title = "Upcoming Events") {
-                    UpcomingEventsList(events = upcomingEvents)
+                // Main content area that reacts to the UI state
+                AnimatedContent(
+                    targetState = uiState,
+                    label = "CalendarContentAnimation"
+                ) { state ->
+                    when (state) {
+                        is CalendarUiState.Loading -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 100.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                        is CalendarUiState.Success -> {
+                            if (state.holidays.isEmpty()) {
+                                EmptyState()
+                            } else {
+                                HolidayContent(
+                                    year = selectedYear,
+                                    month = selectedMonth,
+                                    holidays = state.holidays
+                                )
+                            }
+                        }
+                        is CalendarUiState.Error -> {
+                            ErrorState(message = state.message)
+                        }
+                        is CalendarUiState.Empty -> {
+                            // Initially empty, data will be fetched by LaunchedEffect
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun HolidayContent(year: Int, month: Month, holidays: List<Holiday>) {
+    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        CalendarView(year = year, month = month, holidays = holidays)
+        HolidayList(holidays = holidays)
     }
 }
 
@@ -132,7 +135,7 @@ fun CalendarTopAppBar(navController: NavController) {
                 .height(110.dp)
                 .background(
                     Brush.verticalGradient(
-                        listOf(Color(0xFFEC407A), Color(0xFFD81B60))
+                        listOf(Color(0xFF6A11CB), Color(0xFF2575FC))
                     ),
                     shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
                 )
@@ -152,39 +155,61 @@ fun CalendarTopAppBar(navController: NavController) {
             Spacer(modifier = Modifier.width(16.dp))
             Column {
                 Text("Festival Calendar 🗓️", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                Text("Never miss a celebration", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                Text("Explore the celebrations of India", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
             }
         }
     }
 }
 
 @Composable
-fun Sectionn(title: String, content: @Composable () -> Unit) {
+fun DateSelectionHeader(
+    selectedYear: Int,
+    selectedMonth: Month,
+    onYearChange: (Int) -> Unit,
+    onMonthChange: (Month) -> Unit
+) {
     Column(
-        modifier = Modifier.padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        content()
-    }
-}
-
-@Composable
-fun MonthSelector(selectedMonth: Month, onMonthSelected: (Month) -> Unit) {
-    val months = Month.values()
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        items(months) { month ->
-            val isSelected = month == selectedMonth
-            Button(
-                onClick = { onMonthSelected(month) },
-                shape = CircleShape,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isSelected) Color(0xFFF06292) else Color.White,
-                    contentColor = if (isSelected) Color.White else Color.Black
-                ),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
-            ) {
-                Text(month.name.lowercase().capitalize().take(3))
+        // Year Selector
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            IconButton(onClick = { onYearChange(selectedYear - 1) }) {
+                Icon(Icons.Default.AddCircle, contentDescription = "Previous Year")
+            }
+            Text(
+                text = selectedYear.toString(),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            IconButton(onClick = { onYearChange(selectedYear + 1) }) {
+                Icon(Icons.Default.AddCircle, contentDescription = "Next Year")
+            }
+        }
+        // Month Selector
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+        ) {
+            items(Month.values()) { month ->
+                val isSelected = month == selectedMonth
+                Button(
+                    onClick = { onMonthChange(month) },
+                    shape = CircleShape,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isSelected) Color(0xFF42A5F5) else Color.White,
+                        contentColor = if (isSelected) Color.White else Color.Black
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                ) {
+                    Text(month.name.take(3).lowercase().replaceFirstChar { it.uppercase() })
+                }
             }
         }
     }
@@ -192,56 +217,60 @@ fun MonthSelector(selectedMonth: Month, onMonthSelected: (Month) -> Unit) {
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun CalendarView(month: Month, year: Int, festivals: List<Festivala>) {
+fun CalendarView(year: Int, month: Month, holidays: List<Holiday>) {
+    val holidayDates = remember(holidays) {
+        holidays.mapNotNull {
+            try {
+                // ✅ FIX 1: Access the .iso property inside the 'date' object
+                LocalDate.parse(it.date.iso, DateTimeFormatter.ISO_LOCAL_DATE).dayOfMonth
+            } catch (e: Exception) {
+                null
+            }
+        }.toSet()
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.7f)),
-        elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("${month.name.lowercase().capitalize()} $year highlights", fontWeight = FontWeight.Bold)
-            Text("Festival highlights", fontSize = 12.sp, color = Color.Gray)
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Calendar Grid
+        Column(Modifier.padding(16.dp)) {
+            // Calendar Grid Logic
             val daysInMonth = YearMonth.of(year, month).lengthOfMonth()
             val firstDayOfMonth = YearMonth.of(year, month).atDay(1).dayOfWeek.value % 7 // Sun=0
             val calendarDays = (1..daysInMonth).toList()
-            val festivalDays = festivals.map { it.day to it.color }.toMap()
 
             // Day labels (Sun, Mon, etc.)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat").forEach {
-                    Text(it, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color.Gray)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                listOf("S", "M", "T", "W", "T", "F", "S").forEach {
+                    Text(it, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray)
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
 
             // Dates
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                val totalCells = (daysInMonth + firstDayOfMonth + 6) / 7 * 7
-                val paddedDays = List(firstDayOfMonth) { null } + calendarDays + List(totalCells - daysInMonth - firstDayOfMonth) { null }
-                paddedDays.chunked(7).forEach { week ->
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                        week.forEach { day ->
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(festivalDays[day] ?: Color.Transparent),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (day != null) {
-                                    Text(
-                                        text = day.toString(),
-                                        color = if (festivalDays.containsKey(day)) Color.White else Color.Black,
-                                        fontWeight = if (festivalDays.containsKey(day)) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                }
+            val totalCells = (daysInMonth + firstDayOfMonth + 6) / 7 * 7
+            val paddedDays = List(firstDayOfMonth) { null } + calendarDays + List(totalCells - daysInMonth - firstDayOfMonth) { null }
+            paddedDays.chunked(7).forEach { week ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                    week.forEach { day ->
+                        val isHoliday = day != null && holidayDates.contains(day)
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(if (isHoliday) Color(0xFFEC407A).copy(alpha = 0.3f) else Color.Transparent),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (day != null) {
+                                Text(
+                                    text = day.toString(),
+                                    color = if (isHoliday) Color(0xFFD81B60) else Color.Black,
+                                    fontWeight = if (isHoliday) FontWeight.Bold else FontWeight.Normal
+                                )
                             }
                         }
                     }
@@ -251,116 +280,146 @@ fun CalendarView(month: Month, year: Int, festivals: List<Festivala>) {
     }
 }
 
-
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun FestivalList(festivals: List<Festivala>) {
+fun HolidayList(holidays: List<Holiday>) {
     Column(
         modifier = Modifier.padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        festivals.sortedBy { it.day }.forEach { festival ->
-            FestivalCard(festival = festival)
+        Text("Festivals this month", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        holidays.forEach { holiday ->
+            HolidayCard(holiday = holiday)
         }
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun FestivalCard(festival: Festivala) {
+fun HolidayCard(holiday: Holiday) {
+    val context = LocalContext.current
+    val parsedDate = remember {
+        try {
+            // ✅ FIX 2: Access the .iso property inside the 'date' object
+            LocalDate.parse(holiday.date.iso, DateTimeFormatter.ISO_LOCAL_DATE)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = festival.color.copy(alpha = 0.3f)),
-        elevation = CardDefaults.cardElevation(0.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(2.dp),
+        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f))
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(festival.color),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(festival.day.toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(festival.name, fontWeight = FontWeight.Bold)
-                Text(festival.description, fontSize = 12.sp, color = Color.Gray)
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Button(
-                        onClick = { /* Learn More */ },
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White.copy(alpha = 0.7f),
-                            contentColor = Color.Black
-                        ),
-                        contentPadding = PaddingValues(horizontal = 16.dp)
-                    ) {
-                        Text("Learn More", fontSize = 12.sp)
+            if (parsedDate != null) {
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFFEC407A).copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            parsedDate.dayOfMonth.toString(),
+                            color = Color(0xFFD81B60),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
+                        Text(
+                            parsedDate.month.name.take(3),
+                            color = Color(0xFFD81B60),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(Icons.Default.Notifications, contentDescription = "Remind me", tint = Color.Gray)
                 }
             }
-            Text(
-                text = festival.category,
-                fontSize = 10.sp,
-                modifier = Modifier
-                    .background(Color.White.copy(alpha = 0.5f), CircleShape)
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun UpcomingEventsList(events: List<UpcomingEvent>) {
-    Column(
-        modifier = Modifier.padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        events.forEach { event ->
-            EventCard(event = event)
-        }
-    }
-}
-
-@Composable
-fun EventCard(event: UpcomingEvent) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFE8EAF6)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.AddCircle, contentDescription = null, tint = Color(0xFF3F51B5))
-            }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(event.title, fontWeight = FontWeight.Bold)
-                Text(event.date, fontSize = 12.sp, color = Color.Gray)
-                Text(event.location, fontSize = 12.sp, color = Color.Gray)
+                Text(holiday.name, fontWeight = FontWeight.Bold)
+                // ✅ FIX 3: Convert the 'type' object to a String for display
+                Text(holiday.type?.toString() ?: "Festival", fontSize = 12.sp, color = Color.Gray)
             }
-            Text(
-                text = event.type,
-                fontSize = 10.sp,
-                color = Color.DarkGray,
+            // Add to Calendar Button
+            IconButton(
+                onClick = {
+                    parsedDate?.let { date ->
+                        val startMillis = date.atStartOfDay(TimeZone.getDefault().toZoneId()).toInstant().toEpochMilli()
+
+                        val intent = Intent(Intent.ACTION_INSERT)
+                            .setData(CalendarContract.Events.CONTENT_URI)
+                            .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, startMillis)
+                            .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, startMillis)
+                            .putExtra(CalendarContract.EXTRA_EVENT_ALL_DAY, true)
+                            .putExtra(CalendarContract.Events.TITLE, holiday.name)
+                            .putExtra(CalendarContract.Events.DESCRIPTION, "Celebration of ${holiday.name}")
+
+                        context.startActivity(intent)
+                    }
+                },
                 modifier = Modifier
-                    .background(Color.LightGray.copy(alpha = 0.5f), CircleShape)
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-            )
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color.Gray.copy(alpha = 0.1f))
+            ) {
+                Icon(Icons.Default.AddCircle, contentDescription = "Add to Calendar", tint = Color(0xFF42A5F5))
+            }
         }
     }
 }
+
+@Composable
+fun EmptyState() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Icon(Icons.Default.AddCircle, contentDescription = "", tint = Color.LightGray, modifier = Modifier.size(64.dp))
+        Text(
+            "No Festivals Found",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            "There are no recorded festivals for the selected month and year. Try selecting another.",
+            textAlign = TextAlign.Center,
+            color = Color.Gray
+        )
+    }
+}
+
+@Composable
+fun ErrorState(message: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Icon(Icons.Default.AddCircle, contentDescription = "", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(64.dp))
+        Text(
+            "Something Went Wrong",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.error
+        )
+        Text(
+            text = message,
+            textAlign = TextAlign.Center,
+            color = Color.Gray
+        )
+    }
+}
+

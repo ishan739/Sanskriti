@@ -31,5 +31,8 @@ object RetrofitInstance {
 
     // ✅ New ChatApi with different base URL
     val chatApi: ChatApi by lazy { chatRetrofit.create(ChatApi::class.java) }
+
+    val calendarApi: CalendarApi by lazy { retrofit.create(CalendarApi::class.java) }
+
 }
 
