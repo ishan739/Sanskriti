@@ -48,7 +48,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.richculture.Data.Monument
 import com.example.richculture.R
-import com.example.richculture.ViewModel.MonumentViewModel
+import com.example.richculture.ViewModels.MonumentViewModel
 import com.example.richculture.utility.allDistricts
 
 // ... (glassmorphic modifier and other composables are unchanged)

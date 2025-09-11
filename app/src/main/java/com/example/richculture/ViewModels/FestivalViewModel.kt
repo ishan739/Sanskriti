@@ -1,4 +1,4 @@
-package com.example.richculture.ViewModel
+package com.example.richculture.ViewModels
 
 import android.util.Log
 import androidx.compose.runtime.State
@@ -19,6 +19,11 @@ class FestivalViewModel : ViewModel() {
 
     private val _error = mutableStateOf<String?>(null)
     val error: State<String?> = _error
+
+    init {
+        // maybe load all festivals by default
+        fetchByReligion("Hindu")
+    }
 
     fun fetchByReligion(religion: String) {
         viewModelScope.launch {

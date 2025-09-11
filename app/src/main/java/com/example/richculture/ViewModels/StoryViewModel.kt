@@ -1,4 +1,4 @@
-package com.example.richculture.ViewModel
+package com.example.richculture.ViewModels
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel

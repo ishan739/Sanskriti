@@ -1,4 +1,4 @@
-package com.example.richculture.ViewModel
+package com.example.richculture.ViewModels
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel

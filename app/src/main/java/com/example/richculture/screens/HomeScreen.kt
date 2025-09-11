@@ -41,40 +41,34 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.richculture.Data.Story
 import com.example.richculture.R
-import com.example.richculture.ViewModel.StoryViewModel
+import com.example.richculture.ViewModels.StoryViewModel
 import com.example.richculture.navigate.ExploreItem
 import com.example.richculture.navigate.QuickAction
 import com.example.richculture.navigate.Screen
 import java.util.concurrent.TimeUnit
 
-// --- NEW VIBRANT THEME COLORS ---
-private val vibrantTopColor = Color(0xFFFFF3E0) // Light Orange
-private val vibrantBottomColor = Color(0xFFF3E5F5) // Light Purple
+// --- VIBRANT THEME COLORS ---
+private val vibrantTopColor = Color(0xFFFFF3E0)
+private val vibrantBottomColor = Color(0xFFF3E5F5)
 private val screenBackgroundBrush = Brush.verticalGradient(listOf(vibrantTopColor, vibrantBottomColor))
 private val primaryTextColor = Color(0xFF3C2F2F)
 private val secondaryTextColor = Color(0xFF7D6E6E)
-private val accentMarigold = Color(0xFFFFA726)
-private val accentTeal = Color(0xFF26A69A)
 private val accentPink = Color(0xFFEC407A)
-private val cardBackgroundColor = Color.White
-private val topBarBrush = Brush.verticalGradient(listOf(Color(0xFFFFD180), Color(0xFFFFA726))) // Lighter orange gradient
+private val topBarBrush = Brush.verticalGradient(listOf(Color(0xFFFFD180), Color(0xFFFFA726)))
 
-// --- DATA SOURCE FOR THE UI (Updated with new gradients) ---
+// --- UPDATED DATA SOURCE WITH NEW VIBRANT GRADIENTS FOR QUICK ACTIONS ---
 val quickActions = listOf(
-    QuickAction("AR Scan", "Scan monuments", R.drawable.ic_scan, Screen.ARScanAction.route, listOf(accentTeal, Color(0xFF00796B))),
-    QuickAction("Calendar", "Festival dates", R.drawable.ic_calendar, Screen.FestiveCalendar.route, listOf(accentMarigold, Color(0xFFF57C00))),
-    QuickAction("Hub", "Share memories", R.drawable.ic_community, Screen.CommunityWall.route, listOf(accentPink, Color(0xFFD81B60)))
+    QuickAction("AR Scan", "Scan monuments", R.drawable.ic_scan, Screen.ARScanAction.route, listOf(Color(0xFF26A69A), Color(0xFF00796B))),
+    QuickAction("Calendar", "Festivals", R.drawable.ic_calendar, Screen.FestiveCalendar.route, listOf(Color(0xFFFFA726), Color(0xFFF57C00))),
+    QuickAction("Hub", "Share memories", R.drawable.ic_hub, Screen.CommunityWall.route, listOf(Color(0xFFEC407A), Color(0xFFD81B60)))
 )
 
 val exploreItems = listOf(
-    ExploreItem("Heritage Explorer", R.drawable.ic_heri, R.drawable.ic_heri, Screen.HeritageExplorer.route, emptyList()),
+    ExploreItem("Heritage Explorer", R.drawable.ic_heritage, R.drawable.ic_heri, Screen.HeritageExplorer.route, emptyList()),
     ExploreItem("Arts & Traditions", R.drawable.ic_arts, R.drawable.ic_arts_trad, Screen.ArtsAndTraditions.route, emptyList()),
-    ExploreItem("Festivals & Food", R.drawable.ic_camera, R.drawable.ic_diwali, Screen.FestivalsAndFood.route, emptyList()),
-    ExploreItem("Sacred Stories", R.drawable.ic_profile, R.drawable.ic_books, Screen.Stories.route, emptyList())
+    ExploreItem("Festivals & Food", R.drawable.ic_festival, R.drawable.ic_diwali, Screen.FestivalsAndFood.route, emptyList()),
+    ExploreItem("Sacred Stories", R.drawable.ic_story, R.drawable.ic_books, Screen.Stories.route, emptyList())
 )
-
-// Updated Highlight Brush
-private val highlightBrush = Brush.horizontalGradient(listOf(accentMarigold, accentPink))
 
 @Composable
 fun HomeScreen(
@@ -90,17 +84,17 @@ fun HomeScreen(
     var selectedStory by remember { mutableStateOf<Story?>(null) }
 
     if (showStoryDialog && selectedStory != null) {
-        StoryDetailDialog(story = selectedStory!!, viewModel = storyViewModel, onDismiss = { showStoryDialog = false })
+        StoryDetailDialogHome(story = selectedStory!!, viewModel = storyViewModel, onDismiss = { showStoryDialog = false })
     }
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(screenBackgroundBrush), // Using new vibrant gradient
+            .background(screenBackgroundBrush),
         contentPadding = PaddingValues(bottom = 100.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item { MainTopAppBar(navController) } // Pass NavController for navigation
+        item { MainTopAppBar(navController) }
         item { SectionHeader("Quick Actions") }
         item { QuickActionsRow(navController) }
         item { SectionHeader("Explore Heritage") }
@@ -108,10 +102,8 @@ fun HomeScreen(
         item { SectionHeader("Highlight") }
         item {
             if (isLoading) {
-                Box(modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = accentMarigold)
+                Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = accentPink)
                 }
             } else {
                 storyOfTheDay?.let { story ->
@@ -130,51 +122,34 @@ fun HomeScreen(
     }
 }
 
-// --- UPDATED HEADER COMPOSABLE ---
 @Composable
-fun MainTopAppBar(navController: NavController) { // Now accepts NavController
+fun MainTopAppBar(navController: NavController) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth(),
-        shape = BottomArcShape(arcHeight = 30.dp),
+        modifier = Modifier.fillMaxWidth(),
+        shape = BottomArcShapeHome(arcHeight = 30.dp),
         elevation = CardDefaults.cardElevation(8.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(topBarBrush) // Apply the new gradient here
+                .background(topBarBrush)
                 .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 40.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                Text(
-                    text = "Namaste Harshi!",
-                    style = TextStyle(
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White // Change text to white for contrast
-                    )
-                )
-                Text(
-                    text = "✨ Discover India's timeless heritage",
-                    fontSize = 14.sp,
-                    color = Color.White.copy(alpha = 0.9f) // Slightly transparent white
-                )
+                Text("Namaste Harshi!", style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                Text("✨ Discover India's timeless heritage", fontSize = 14.sp, color = Color.White.copy(alpha = 0.9f))
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { /* TODO notification click */ }) {
-                    Icon(
-                        imageVector = Icons.Outlined.Notifications,
-                        contentDescription = "Notifications",
-                        tint = Color.White.copy(alpha = 0.9f) // White icon
-                    )
+                IconButton(onClick = { /* TODO */ }) {
+                    Icon(Icons.Outlined.Notifications, contentDescription = "Notifications", tint = Color.White.copy(alpha = 0.9f))
                 }
-                IconButton(onClick = { navController.navigate("profile") }) { // Profile navigation added
-                    Icon(
-                        imageVector = Icons.Outlined.AccountCircle,
-                        contentDescription = "Profile",
-                        tint = Color.White.copy(alpha = 0.9f) // White icon
+                IconButton(onClick = { navController.navigate("profile") }) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_profile),
+                        contentDescription = null, // No tint is applied
+                        modifier = Modifier.size(32.dp)
                     )
                 }
             }
@@ -193,57 +168,70 @@ fun SectionHeader(title: String) {
     )
 }
 
-// --- QUICK ACTIONS ---
 @Composable
 fun QuickActionsRow(navController: NavController) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.SpaceAround
+            .padding(horizontal = 5.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp) // Spacing reduced
     ) {
         quickActions.forEach { action ->
-            QuickActionCard(action = action, navController = navController)
+            QuickActionCard(action = action, navController = navController, modifier = Modifier.weight(1f))
         }
     }
 }
 
+// --- COMPLETELY REDESIGNED QUICK ACTION CARD ---
 @Composable
 fun QuickActionCard(action: QuickAction, navController: NavController, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.clickable { navController.navigate(action.route) },
-        horizontalAlignment = Alignment.CenterHorizontally
+    Card(
+        modifier = modifier
+            .aspectRatio(1f) // Aspect ratio increased to make it a square
+            .clickable { navController.navigate(action.route) },
+        shape = RoundedCornerShape(28.dp),
+        elevation = CardDefaults.cardElevation(8.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(72.dp)
-                .clip(CircleShape)
-                .background(Brush.verticalGradient(action.gradientColors)),
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+                .background(Brush.verticalGradient(action.gradientColors))
         ) {
-            Icon(
-                painter = painterResource(id = action.icon),
-                contentDescription = action.title,
-                tint = Color.White,
-                modifier = Modifier.size(36.dp)
+            // Sunny flare / Glassmorphic effect
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .offset(x = (-20).dp, y = (-30).dp)
+                    .size(100.dp)
+                    .background(
+                        brush = Brush.radialGradient(
+                            colors = listOf(Color.White.copy(alpha = 0.5f), Color.Transparent)
+                        ),
+                        shape = CircleShape
+                    )
             )
+            // Content
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Image(
+                    painter = painterResource(id = action.icon),
+                    contentDescription = null, // No tint is applied
+                    modifier = Modifier.size(32.dp)
+                )
+                Column {
+                    Text(action.title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                    Text(action.subtitle, color = Color.White.copy(alpha = 0.9f), fontSize = 13.sp)
+                }
+            }
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = action.title,
-            fontWeight = FontWeight.Bold,
-            color = primaryTextColor,
-            fontSize = 15.sp
-        )
-        Text(
-            text = action.subtitle,
-            color = secondaryTextColor,
-            fontSize = 13.sp
-        )
     }
 }
 
-// --- EXPLORE HERITAGE ---
 @Composable
 fun ExploreGrid(navController: NavController) {
     Column(
@@ -271,48 +259,25 @@ fun ExploreItemCard(item: ExploreItem, navController: NavController, modifier: M
         elevation = CardDefaults.cardElevation(8.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Image(
-                painter = painterResource(id = item.imageResId),
-                contentDescription = item.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
+            Image(painter = painterResource(id = item.imageResId), contentDescription = item.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-                            startY = 100f
-                        )
-                    )
+                modifier = Modifier.fillMaxSize()
+                    .background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)), startY = 100f))
             )
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(16.dp)
-            ) {
-                Icon(
+            Column(modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)) {
+                // *** THE FIX IS HERE: Replaced Icon with Image ***
+                Image(
                     painter = painterResource(id = item.icon),
-                    contentDescription = null,
-                    tint = Color.White,
+                    contentDescription = null, // No tint is applied
                     modifier = Modifier.size(32.dp)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = item.title,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Text(text = item.title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
     }
 }
 
-// --- NEWLY REDESIGNED HIGHLIGHT CARD ---
 @Composable
 fun StoryOfTheDayCard(story: Story, isPlaying: Boolean, onClick: () -> Unit, onListenClick: () -> Unit) {
     Card(
@@ -325,47 +290,20 @@ fun StoryOfTheDayCard(story: Story, isPlaying: Boolean, onClick: () -> Unit, onL
         elevation = CardDefaults.cardElevation(8.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            AsyncImage(
-                model = story.thumbnail,
-                contentDescription = story.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-            // Gradient Scrim for text readability
+            AsyncImage(model = story.thumbnail, contentDescription = story.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
-                            startY = 150f
-                        )
-                    )
+                modifier = Modifier.fillMaxSize()
+                    .background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)), startY = 150f))
             )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomStart)
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(modifier = Modifier.fillMaxWidth().align(Alignment.BottomStart).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Highlight", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.8f))
-                    Text(
-                        text = story.title,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = Color.White
-                    )
+                    Text(text = story.title, fontWeight = FontWeight.Bold, fontSize = 20.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = Color.White)
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 IconButton(
                     onClick = onListenClick,
-                    modifier = Modifier
-                        .size(52.dp)
-                        .background(Color.White, CircleShape)
+                    modifier = Modifier.size(52.dp).background(Color.White, CircleShape)
                 ) {
                     Icon(
                         painter = painterResource(id = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
@@ -379,31 +317,67 @@ fun StoryOfTheDayCard(story: Story, isPlaying: Boolean, onClick: () -> Unit, onL
     }
 }
 
-// --- STORY DIALOG (as provided) ---
+@Composable
+fun StoryDetailDialogHome(story: Story, viewModel: StoryViewModel, onDismiss: () -> Unit) {
+    val isPlaying by viewModel.isPlaying.collectAsState()
+    val currentlyPlayingStory by viewModel.currentlyPlayingStory.collectAsState()
+    val playbackPosition by viewModel.playbackPosition.collectAsState()
+    val totalDuration by viewModel.totalDuration.collectAsState()
 
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) {
+            Card(
+                modifier = Modifier.fillMaxWidth(0.9f).fillMaxHeight(0.8f),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA))
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Box {
+                        AsyncImage(model = story.thumbnail, contentDescription = story.title, modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)), contentScale = ContentScale.Crop)
+                        IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape)) {
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                        }
+                    }
+                    Column(modifier = Modifier.padding(20.dp).weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text(story.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Text(story.story, style = MaterialTheme.typography.bodyMedium, color = Color.Gray, lineHeight = 22.sp)
+                    }
+                    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Slider(value = if (totalDuration > 0) playbackPosition.toFloat() else 0f, onValueChange = { newPosition -> viewModel.seekTo(newPosition.toLong()) }, valueRange = 0f..(if (totalDuration > 0) totalDuration.toFloat() else 1f), modifier = Modifier.fillMaxWidth())
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(formatDuration(playbackPosition), style = MaterialTheme.typography.labelSmall)
+                            Text(formatDuration(totalDuration), style = MaterialTheme.typography.labelSmall)
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        IconButton(onClick = { viewModel.playStory(story) }, modifier = Modifier.size(64.dp).background(MaterialTheme.colorScheme.primary, CircleShape)) {
+                            Icon(
+                                painter = if (isPlaying && currentlyPlayingStory?.id == story.id) painterResource(id = R.drawable.ic_pause) else painterResource(id = R.drawable.ic_play),
+                                contentDescription = if (isPlaying && currentlyPlayingStory?.id == story.id) "Pause" else "Play",
+                                tint = Color.White,
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
-// --- HELPER & CUSTOM SHAPE ---
 private fun formatDuration(millis: Long): String {
     val minutes = TimeUnit.MILLISECONDS.toMinutes(millis)
     val seconds = TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.MINUTES.toSeconds(minutes)
     return String.format("%02d:%02d", minutes, seconds)
 }
 
-class BottomArcShape(private val arcHeight: Dp) : Shape {
-    override fun createOutline(
-        size: Size,
-        layoutDirection: LayoutDirection,
-        density: Density
-    ): Outline {
+class BottomArcShapeHome(private val arcHeight: Dp) : Shape {
+    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
         val arcHeightPx = with(density) { arcHeight.toPx() }
         val path = Path().apply {
             moveTo(0f, 0f)
             lineTo(size.width, 0f)
             lineTo(size.width, size.height - arcHeightPx)
-            quadraticBezierTo(
-                size.width / 2, size.height,
-                0f, size.height - arcHeightPx
-            )
+            quadraticBezierTo(size.width / 2, size.height, 0f, size.height - arcHeightPx)
             close()
         }
         return Outline.Generic(path)

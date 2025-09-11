@@ -54,14 +54,6 @@ fun NavigationGraph(navController: NavHostController, modifier: Modifier = Modif
         ) { HomeScreen(navController) }
 
         composable(
-            route = Screen.ARScan.route,
-            enterTransition = { enterTransition },
-            exitTransition = { exitTransition },
-            popEnterTransition = { popEnterTransition },
-            popExitTransition = { popExitTransition }
-        ) { ArScanScreen() }
-
-        composable(
             route = Screen.Stories.route,
             enterTransition = { enterTransition },
             exitTransition = { exitTransition },
@@ -141,7 +133,7 @@ fun NavigationGraph(navController: NavHostController, modifier: Modifier = Modif
             exitTransition = { exitTransition },
             popEnterTransition = { popEnterTransition },
             popExitTransition = { popExitTransition }
-        ) { ArScanScreen() } // same as ARScan
+        ) { ArScanScreen(navController) } // same as ARScan
 
         composable(
             route = Screen.FestiveCalendar.route,

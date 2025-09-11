@@ -39,15 +39,15 @@ sealed class Screen(
         Brush.verticalGradient(listOf(Color(0xFFA5D6A7), Color(0xFF81C784)))
     )
     object Trip : Screen(
-        "trip", "TripMate", R.drawable.ic_chatbot_avatar, Color(0xFF7E57C2),
+        "trip", "TripMate", R.drawable.ic_tripmate, Color(0xFF7E57C2),
         Brush.verticalGradient(listOf(Color(0xFFB39DDB), Color(0xFF9575CD)))
     )
     object Bazaar : Screen(
-        "bazaar", "Bazaar", R.drawable.ic_bazaar, Color(0xFFEC407A),
+        "bazaar", "Bazaar", R.drawable.ic_shopping, Color(0xFFEC407A),
         Brush.verticalGradient(listOf(Color(0xFFF8BBD0), Color(0xFFF48FB1)))
     )
     object Chatbot : Screen(
-        "chatbot", "Chatbot", R.drawable.ic_chat, Color(0xFF42A5F5),
+        "chatbot", "Chatbot", R.drawable.ic_chatbot, Color(0xFF42A5F5),
         Brush.verticalGradient(listOf(Color(0xFF90CAF9), Color(0xFF64B5F6)))
     )
 

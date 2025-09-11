@@ -37,8 +37,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.richculture.Data.Story
-import com.example.richculture.ViewModel.StoryCategoryInfo
-import com.example.richculture.ViewModel.StoryViewModel
+import com.example.richculture.ViewModels.StoryCategoryInfo
+import com.example.richculture.ViewModels.StoryViewModel
 import java.util.concurrent.TimeUnit
 import com.example.richculture.R
 

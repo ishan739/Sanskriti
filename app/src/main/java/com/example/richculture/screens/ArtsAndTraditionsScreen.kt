@@ -1,10 +1,11 @@
 package com.example.richculture.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,49 +18,70 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.example.richculture.Data.Art
+import com.example.richculture.Data.Dance
+import com.example.richculture.Data.Music
 import com.example.richculture.R
+import com.example.richculture.ViewModels.ArtViewModel
+import com.example.richculture.ViewModels.DanceViewModel
+import com.example.richculture.ViewModels.MusicViewModel
 
-// --- New, Rich Data Models for the Redesigned Screen ---
+// --- DATA & VIEWMODELS ---
 
 enum class ArtCategory { Dance, Music, Arts }
 
-data class ArtForm(
-    val title: String,
-    val description: String,
-    val region: String,
-    val imageResId: Int,
-    val category: ArtCategory
-)
-
-// --- Dummy Data ---
-
-val artsAndTraditionsData = listOf(
-    ArtForm("Bharatanatyam", "Classical dance from Tamil Nadu expressing religious themes.", "Tamil Nadu", R.drawable.ic_arts, ArtCategory.Dance),
-    ArtForm("Kathakali", "A stylized classical Indian dance-drama from Kerala.", "Kerala", R.drawable.ic_rajasthani_scarf, ArtCategory.Dance),
-    ArtForm("Sitar", "A plucked stringed instrument, originating from the Indian subcontinent.", "North India", R.drawable.ic_blue_pottery, ArtCategory.Music),
-    ArtForm("Tabla", "A pair of small hand drums from the Indian subcontinent.", "Hindustani", R.drawable.ic_rajasthani_scarf, ArtCategory.Music),
-    ArtForm("Madhubani Painting", "A style of Indian painting, practiced in the Mithila region.", "Bihar", R.drawable.ic_madhubani, ArtCategory.Arts),
-    ArtForm("Blue Pottery", "Widely recognized as a traditional craft of Jaipur.", "Jaipur", R.drawable.ic_ganesha_idol, ArtCategory.Arts)
+// --- NEW RADIANT COLORS ---
+private val topBarBrush = Brush.verticalGradient(
+    colors = listOf(Color(0xFFF06292), Color(0xFFBA68C8)) // Radiant Pink to Purple
 )
 
 @Composable
-fun ArtsAndTraditionsScreen(navController: NavController) {
+fun ArtsAndTraditionsScreen(
+    navController: NavController,
+    danceViewModel: DanceViewModel = viewModel(),
+    artViewModel: ArtViewModel = viewModel(),
+    musicViewModel: MusicViewModel = viewModel()
+) {
     var selectedCategory by remember { mutableStateOf(ArtCategory.Dance) }
+
+    // Fetch data when the screen is first composed
+    LaunchedEffect(Unit) {
+        danceViewModel.fetchAllDances()
+        artViewModel.fetchAllArts()
+        musicViewModel.fetchAllMusic()
+    }
+
+    // Collect data from ViewModels
+    val danceList by danceViewModel.danceList.collectAsState()
+    val artList by artViewModel.artList.collectAsState()
+    val musicList by musicViewModel.musicList.collectAsState()
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFFF3E5F5), Color(0xFFEDE7F6), Color(0xFFE8EAF6))
+                    colors = listOf(Color(0xFFFEFBF6), Color(0xFFF0EBE3))
                 )
             )
     ) {
@@ -72,7 +94,7 @@ fun ArtsAndTraditionsScreen(navController: NavController) {
                     .fillMaxSize()
                     .padding(padding),
                 contentPadding = PaddingValues(vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item {
                     CategoryTabs(
@@ -86,17 +108,27 @@ fun ArtsAndTraditionsScreen(navController: NavController) {
                         targetState = selectedCategory,
                         label = "Category Content",
                         transitionSpec = {
-                            fadeIn(animationSpec = androidx.compose.animation.core.tween(300)) togetherWith
-                                    fadeOut(animationSpec = androidx.compose.animation.core.tween(300))
+                            fadeIn(animationSpec = tween(300)) togetherWith
+                                    fadeOut(animationSpec = tween(300))
                         }
                     ) { category ->
-                        val items = artsAndTraditionsData.filter { it.category == category }
                         Column(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             modifier = Modifier.padding(horizontal = 16.dp)
                         ) {
-                            items.forEach { artForm ->
-                                ArtFormCard(artForm = artForm)
+                            when (category) {
+                                ArtCategory.Dance -> {
+                                    if (danceList.isEmpty()) LoadingIndicator()
+                                    else danceList.forEach { dance -> DanceCard(dance = dance) }
+                                }
+                                ArtCategory.Music -> {
+                                    if (musicList.isEmpty()) LoadingIndicator()
+                                    else musicList.forEach { music -> MusicCard(music = music) }
+                                }
+                                ArtCategory.Arts -> {
+                                    if (artList.isEmpty()) LoadingIndicator()
+                                    else artList.forEach { art -> ArtCard(art = art) }
+                                }
                             }
                         }
                     }
@@ -106,82 +138,113 @@ fun ArtsAndTraditionsScreen(navController: NavController) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArtsTopAppBar(navController: NavController) {
-    TopAppBar(
-        title = {
-            Column {
-                Text("Arts & Traditions 🎭", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                Text("The soul of Indian culture", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-            }
-        },
-        navigationIcon = {
-            IconButton(
-                onClick = { navController.popBackStack() },
+    // A custom Top App Bar implementation using a Card to support a custom shape.
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = BottomArcShapeArts(arcHeight = 30.dp),
+        elevation = CardDefaults.cardElevation(8.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(topBarBrush)
+                .padding(top = 8.dp, bottom = 38.dp) // Padding to account for arc and status bar
+        ) {
+            Row(
                 modifier = Modifier
-                    .padding(start = 8.dp)
-                    .background(Color.White.copy(alpha = 0.7f), CircleShape)
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
+                }
+                Text(
+                    "Arts & Traditions 🎭",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp,
+                    color = Color.White,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
             }
-        },
-        windowInsets = WindowInsets(0.dp),
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-    )
+        }
+    }
 }
+
 
 @Composable
 fun CategoryTabs(selectedCategory: ArtCategory, onCategorySelected: (ArtCategory) -> Unit) {
-    val categories = listOf(ArtCategory.Dance, ArtCategory.Music, ArtCategory.Arts)
+    val categories = ArtCategory.values()
+    val activeColor = when (selectedCategory) {
+        ArtCategory.Dance -> Color(0xFFE91E63)
+        ArtCategory.Music -> Color(0xFF1E88E5)
+        ArtCategory.Arts -> Color(0xFFFB8C00)
+    }
 
-    Card(
-        shape = CircleShape,
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.5f)),
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, Color.White)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Row(modifier = Modifier.padding(6.dp)) {
-            categories.forEach { category ->
-                val isSelected = selectedCategory == category
-                val activeColor = when (category) {
-                    ArtCategory.Dance -> Color(0xFFE91E63)
-                    ArtCategory.Music -> Color(0xFF1E88E5)
-                    ArtCategory.Arts -> Color(0xFFFB8C00)
-                }
-
-                Button(
-                    onClick = { onCategorySelected(category) },
-                    modifier = Modifier.weight(1f),
-                    shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isSelected) activeColor else Color.Transparent,
-                        contentColor = if (isSelected) Color.White else Color.Gray
-                    ),
-                    elevation = if (isSelected) ButtonDefaults.buttonElevation(4.dp) else null
-                ) {
-                    Text(category.name)
-                }
+        categories.forEach { category ->
+            val isSelected = selectedCategory == category
+            Button(
+                onClick = { onCategorySelected(category) },
+                modifier = Modifier.weight(1f),
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isSelected) activeColor else Color.White,
+                    contentColor = if (isSelected) Color.White else Color(0xFF5D4037)
+                ),
+                elevation = if (isSelected) ButtonDefaults.buttonElevation(4.dp) else ButtonDefaults.buttonElevation(2.dp),
+                border = if (!isSelected) BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f)) else null
+            ) {
+                Text(category.name)
             }
         }
     }
 }
 
 @Composable
-fun ArtFormCard(artForm: ArtForm) {
-    Card(
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.7f)),
-        elevation = CardDefaults.cardElevation(2.dp),
-        border = BorderStroke(1.dp, Color.White)
+fun LoadingIndicator() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 50.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Image(
-                painter = painterResource(id = artForm.imageResId),
-                contentDescription = artForm.title,
+        CircularProgressIndicator(color = Color(0xFFE91E63)) // Using the Dance category color
+    }
+}
+
+// --- DYNAMIC CARDS ---
+
+@Composable
+fun DanceCard(dance: Dance) {
+    var expanded by remember { mutableStateOf(false) }
+    val uriHandler = LocalUriHandler.current
+
+    Card(
+        modifier = Modifier.clickable { expanded = !expanded },
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .animateContentSize() // Animate size change
+        ) {
+            AsyncImage(
+                model = dance.imageurl,
+                contentDescription = dance.name,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp)
@@ -189,30 +252,136 @@ fun ArtFormCard(artForm: ArtForm) {
                 contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.height(16.dp))
-            Text(artForm.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(dance.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-            Text(artForm.description, color = Color.Gray, lineHeight = 20.sp)
+            Text(
+                text = dance.description,
+                color = Color.Gray,
+                lineHeight = 20.sp,
+                maxLines = if (expanded) Int.MAX_VALUE else 1,
+                overflow = TextOverflow.Ellipsis
+            )
             Spacer(modifier = Modifier.height(12.dp))
-            Row(
+            Button(
+                onClick = { uriHandler.openUri(dance.wikiurl) },
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                elevation = ButtonDefaults.buttonElevation(4.dp)
             ) {
-                OutlinedButton(
-                    onClick = { /*TODO*/ },
-                    shape = CircleShape,
-                    border = BorderStroke(1.dp, Color.LightGray)
-                ) {
-                    Text("Explore ${artForm.region}", color = Color.Black)
-                }
-                Button(
-                    onClick = { /*TODO*/ },
-                    shape = CircleShape,
-                    elevation = ButtonDefaults.buttonElevation(4.dp)
-                ) {
-                    Text("Learn More")
-                }
+                Text("Learn More")
             }
         }
     }
 }
+
+@Composable
+fun ArtCard(art: Art) {
+    var expanded by remember { mutableStateOf(false) }
+    val uriHandler = LocalUriHandler.current
+
+    Card(
+        modifier = Modifier.clickable { expanded = !expanded },
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .animateContentSize()
+        ) {
+            AsyncImage(model = art.imageurl, contentDescription = art.name, modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .clip(RoundedCornerShape(16.dp)), contentScale = ContentScale.Crop)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(art.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = art.description,
+                color = Color.Gray,
+                lineHeight = 20.sp,
+                maxLines = if (expanded) Int.MAX_VALUE else 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = { uriHandler.openUri(art.wikiurl) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                elevation = ButtonDefaults.buttonElevation(4.dp)
+            ) {
+                Text("Learn More")
+            }
+        }
+    }
+}
+
+@Composable
+fun MusicCard(music: Music) {
+    var expanded by remember { mutableStateOf(false) }
+    val uriHandler = LocalUriHandler.current
+
+    Card(
+        modifier = Modifier.clickable { expanded = !expanded },
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .animateContentSize()
+        ) {
+            AsyncImage(model = music.imageurl, contentDescription = music.name, modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .clip(RoundedCornerShape(16.dp)), contentScale = ContentScale.Crop)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(music.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = music.description,
+                color = Color.Gray,
+                lineHeight = 20.sp,
+                maxLines = if (expanded) Int.MAX_VALUE else 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = { uriHandler.openUri(music.wikiurl) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                elevation = ButtonDefaults.buttonElevation(4.dp)
+            ) {
+                Text("Learn More")
+            }
+        }
+    }
+}
+
+// --- Custom Shape for Top App Bar ---
+class BottomArcShapeArts(private val arcHeight: Dp) : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline {
+        val arcHeightPx = with(density) { arcHeight.toPx() }
+        val path = Path().apply {
+            moveTo(0f, 0f)
+            lineTo(size.width, 0f)
+            lineTo(size.width, size.height - arcHeightPx)
+            quadraticBezierTo(
+                size.width / 2, size.height,
+                0f, size.height - arcHeightPx
+            )
+            close()
+        }
+        return Outline.Generic(path)
+    }
+}
+
