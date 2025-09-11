@@ -40,6 +40,12 @@ android {
 }
 
 dependencies {
+
+//    Koin
+
+    implementation(libs.koin.androidx.compose)
+
+//    Media Player
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)
 // optional UI

@@ -1,6 +1,7 @@
 [versions]
 agp = "8.12.2"
 converterGson = "3.0.0"
+koinAndroidxCompose = "4.1.1"
 kotlin = "2.2.10"
 
 coreKtx = "1.17.0"
@@ -52,6 +53,7 @@ androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit
 
 # Material
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
+koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koinAndroidxCompose" }
 material = { module = "com.google.android.material:material", version.ref = "material" }
 material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
 
