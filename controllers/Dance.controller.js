@@ -1,4 +1,5 @@
 
+import uploadOnCloudinary from "../config/cloudinary.js";
 import Dance from "../models/dance.js";
 
 export const getAllDances = async (req, res) => {
@@ -44,3 +45,31 @@ export const getDancesByType = async (req, res) => {
 
 
 
+export const uploadDanceImage = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const imageUrl = await uploadOnCloudinary(req.file.path);
+
+    const updatedDance = await Dance.findOneAndUpdate(
+      { id: Number(id) },
+      { imageurl: imageUrl },
+      { new: true }
+    );
+
+    if (!updatedDance) {
+      return res.status(404).json({ message: "Dance not found" });
+    }
+
+    res.status(200).json({
+      message: "Dance image uploaded successfully",
+      dance: updatedDance,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};

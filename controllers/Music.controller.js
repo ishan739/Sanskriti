@@ -1,3 +1,4 @@
+import uploadOnCloudinary from "../config/cloudinary.js";
 import Music from "../models/music.js";
 
 export const getAllMusic = async (req, res) => {
@@ -37,5 +38,34 @@ export const getMusicsByType = async (req, res) => {
     res.status(200).json(musics);
   } catch (error) {
     res.status(500).json({ message: "Error fetching musics by type", error: error.message });
+  }
+};
+
+export const uploadMusicImage = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const imageUrl = await uploadOnCloudinary(req.file.path);
+
+    const updatedMusic = await Music.findOneAndUpdate(
+      { id: Number(id) },
+      { imageurl: imageUrl },
+      { new: true }
+    );
+
+    if (!updatedMusic) {
+      return res.status(404).json({ message: "Music not found" });
+    }
+
+    res.status(200).json({
+      message: "Music image uploaded successfully",
+      music: updatedMusic,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
