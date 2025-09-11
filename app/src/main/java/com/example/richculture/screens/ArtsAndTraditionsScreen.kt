@@ -1,7 +1,5 @@
 package com.example.richculture.screens
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -25,9 +23,7 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
@@ -41,7 +37,6 @@ import coil.compose.AsyncImage
 import com.example.richculture.Data.Art
 import com.example.richculture.Data.Dance
 import com.example.richculture.Data.Music
-import com.example.richculture.R
 import com.example.richculture.ViewModels.ArtViewModel
 import com.example.richculture.ViewModels.DanceViewModel
 import com.example.richculture.ViewModels.MusicViewModel

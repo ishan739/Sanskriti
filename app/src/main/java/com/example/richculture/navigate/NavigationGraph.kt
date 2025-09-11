@@ -5,8 +5,10 @@ import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.example.richculture.screens.*
 import com.example.richculture.utility.cubeEnterTransition
 import com.example.richculture.utility.cubeExitTransition
@@ -33,14 +35,25 @@ fun NavigationGraph(
             AuthScreen(navController)
         }
 
+        // --- ✅ NEW: Reusable Chat Interface Screen for leaders ---
+        composable(
+            route = "chat_interface/{leaderId}",
+            arguments = listOf(navArgument("leaderId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            // Extract the leaderId from the navigation arguments
+            val leaderId = backStackEntry.arguments?.getString("leaderId") ?: ""
+            ChatInterfaceScreen(navController = navController, leaderId = leaderId)
+        }
+
+
         // --- Main App Screens with CUBE TRANSITION ---
         val allScreens = listOf(
             Screen.Home, Screen.Stories, Screen.Bazaar, Screen.Chatbot, Screen.Profile,
             Screen.Order, Screen.HeritageExplorer, Screen.Trip, Screen.ArtsAndTraditions,
-            Screen.FestivalsAndFood, Screen.ARScanAction, Screen.FestiveCalendar, Screen.CommunityWall
+            Screen.FestivalsAndFood, Screen.ARScanAction, Screen.FestiveCalendar, Screen.CommunityWall,
+            Screen.AzadiChat
         )
 
-        // Using a loop makes the NavHost cleaner and more maintainable
         allScreens.forEach { screen ->
             composable(
                 route = screen.route,
@@ -49,7 +62,6 @@ fun NavigationGraph(
                 popEnterTransition = { cubePopEnterTransition() },
                 popExitTransition = { cubePopExitTransition() }
             ) {
-                // Determine which screen composable to show based on the route
                 when (screen) {
                     Screen.Home -> HomeScreen(navController)
                     Screen.Stories -> StoriesScreen(navController)
@@ -64,7 +76,7 @@ fun NavigationGraph(
                     Screen.ARScanAction -> ArScanScreen(navController)
                     Screen.FestiveCalendar -> FestiveCalendarScreen(navController)
                     Screen.CommunityWall -> CommunityWallScreen(navController)
-                    // Add cases for any other screens here
+                    Screen.AzadiChat -> AzadiChatScreen(navController)
                     else -> {}
                 }
             }

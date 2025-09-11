@@ -56,11 +56,13 @@ private val secondaryTextColor = Color(0xFF7D6E6E)
 private val accentPink = Color(0xFFEC407A)
 private val topBarBrush = Brush.verticalGradient(listOf(Color(0xFFFFD180), Color(0xFFFFA726)))
 
-// --- UPDATED DATA SOURCE WITH NEW VIBRANT GRADIENTS FOR QUICK ACTIONS ---
+// --- ✅ UPDATED DATA SOURCE WITH 4 QUICK ACTIONS ---
 val quickActions = listOf(
     QuickAction("AR Scan", "Scan monuments", R.drawable.ic_scan, Screen.ARScanAction.route, listOf(Color(0xFF26A69A), Color(0xFF00796B))),
     QuickAction("Calendar", "Festivals", R.drawable.ic_calendar, Screen.FestiveCalendar.route, listOf(Color(0xFFFFA726), Color(0xFFF57C00))),
-    QuickAction("Hub", "Share memories", R.drawable.ic_hub, Screen.CommunityWall.route, listOf(Color(0xFFEC407A), Color(0xFFD81B60)))
+    QuickAction("Hub", "Share memories", R.drawable.ic_hub, Screen.CommunityWall.route, listOf(Color(0xFFEC407A), Color(0xFFD81B60))),
+    // --- ✅ NEW 4TH ITEM ADDED ---
+    QuickAction("AzadiChat", "Chat with Leaders", R.drawable.ic_chatbot, Screen.AzadiChat.route, listOf(Color(0xFF42A5F5), Color(0xFF1E88E5)))
 )
 
 val exploreItems = listOf(
@@ -96,7 +98,8 @@ fun HomeScreen(
     ) {
         item { MainTopAppBar(navController) }
         item { SectionHeader("Quick Actions") }
-        item { QuickActionsRow(navController) }
+        // --- ✅ REPLACED ROW WITH GRID ---
+        item { QuickActionsGrid(navController) }
         item { SectionHeader("Explore Heritage") }
         item { ExploreGrid(navController) }
         item { SectionHeader("Highlight") }
@@ -168,26 +171,31 @@ fun SectionHeader(title: String) {
     )
 }
 
+// --- ✅ NEW GRID LAYOUT FOR QUICK ACTIONS ---
 @Composable
-fun QuickActionsRow(navController: NavController) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 5.dp),
-        horizontalArrangement = Arrangement.spacedBy(5.dp) // Spacing reduced
+fun QuickActionsGrid(navController: NavController) {
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        quickActions.forEach { action ->
-            QuickActionCard(action = action, navController = navController, modifier = Modifier.weight(1f))
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            QuickActionCard(action = quickActions[0], navController = navController, modifier = Modifier.weight(1f))
+            QuickActionCard(action = quickActions[1], navController = navController, modifier = Modifier.weight(1f))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            quickActions.getOrNull(2)?.let { QuickActionCard(action = it, navController = navController, modifier = Modifier.weight(1f)) }
+            quickActions.getOrNull(3)?.let { QuickActionCard(action = it, navController = navController, modifier = Modifier.weight(1f)) }
         }
     }
 }
 
-// --- COMPLETELY REDESIGNED QUICK ACTION CARD ---
+
 @Composable
 fun QuickActionCard(action: QuickAction, navController: NavController, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier
-            .aspectRatio(1f) // Aspect ratio increased to make it a square
+            // --- ✅ ASPECT RATIO CHANGED TO MATCH EXPLORE SECTION ---
+            .aspectRatio(0.75f)
             .clickable { navController.navigate(action.route) },
         shape = RoundedCornerShape(28.dp),
         elevation = CardDefaults.cardElevation(8.dp)
@@ -197,7 +205,6 @@ fun QuickActionCard(action: QuickAction, navController: NavController, modifier:
                 .fillMaxSize()
                 .background(Brush.verticalGradient(action.gradientColors))
         ) {
-            // Sunny flare / Glassmorphic effect
             Box(
                 modifier = Modifier
                     .align(Alignment.TopStart)
@@ -210,7 +217,6 @@ fun QuickActionCard(action: QuickAction, navController: NavController, modifier:
                         shape = CircleShape
                     )
             )
-            // Content
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -220,7 +226,7 @@ fun QuickActionCard(action: QuickAction, navController: NavController, modifier:
             ) {
                 Image(
                     painter = painterResource(id = action.icon),
-                    contentDescription = null, // No tint is applied
+                    contentDescription = null,
                     modifier = Modifier.size(32.dp)
                 )
                 Column {
@@ -265,10 +271,9 @@ fun ExploreItemCard(item: ExploreItem, navController: NavController, modifier: M
                     .background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)), startY = 100f))
             )
             Column(modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)) {
-                // *** THE FIX IS HERE: Replaced Icon with Image ***
                 Image(
                     painter = painterResource(id = item.icon),
-                    contentDescription = null, // No tint is applied
+                    contentDescription = null,
                     modifier = Modifier.size(32.dp)
                 )
                 Spacer(modifier = Modifier.height(8.dp))

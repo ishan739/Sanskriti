@@ -36,11 +36,12 @@ sealed class Screen(
     // --- Other App Screens ---
     object Profile : Screen("profile", "Profile", R.drawable.ic_profile)
     object Order : Screen("orders", "Orders", R.drawable.ic_cart)
-    object ARScan : Screen("arscan", "AR Scan", R.drawable.ic_scan)
     object HeritageExplorer : Screen("heritage_explorer", "Heritage Explorer", R.drawable.ic_heri)
     object ArtsAndTraditions : Screen("arts_traditions", "Arts & Traditions", R.drawable.ic_community)
     object FestivalsAndFood : Screen("festivals_food", "Festivals & Food", R.drawable.ic_camera)
     object ARScanAction : Screen("arscan_action", "AR Scan", R.drawable.ic_scan)
+
+    object AzadiChat : Screen("azadi_chat", "Azadi Chat", R.drawable.ic_chatbot)
     object FestiveCalendar : Screen("festive_calendar", "Festive Calendar", R.drawable.ic_calendar)
     object CommunityWall : Screen("community_wall", "Community Wall", R.drawable.ic_community)
 
@@ -48,4 +49,5 @@ sealed class Screen(
     // These don't need icons or colors as they won't appear in the bottom bar.
     object Onboarding : Screen("onboarding", "Onboarding", -1) // -1 for no drawable
     object Auth : Screen("auth", "Authentication", -1)
+
 }

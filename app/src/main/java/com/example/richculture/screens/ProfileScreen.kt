@@ -137,7 +137,7 @@ fun ProfileTopAppBar(navController: NavHostController) {
     TopAppBar(
         title = {
             Column {
-                Text("My Profile", fontWeight = FontWeight.Bold , color = Color.Black)
+                Text("Harshil", fontWeight = FontWeight.Bold , color = Color.Black)
                 Text("Cultural journey dashboard", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
         },

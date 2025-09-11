@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.richculture.ViewModels.ChatViewModel
+import com.example.richculture.ViewModels.UniversalChatViewModel
 import kotlinx.coroutines.launch
 
 // Data class to represent a single chat message for better state management
@@ -36,7 +36,7 @@ data class ChatMessage(val text: String, val isUser: Boolean)
 @Composable
 fun ChatbotScreen(
     navController: NavController,
-    viewModel: ChatViewModel = viewModel()
+    viewModel: UniversalChatViewModel = viewModel()
 ) {
     // State from ViewModel
     val chatResponse by viewModel.chatResponse.collectAsState()
@@ -143,7 +143,7 @@ fun ChatbotScreen(
                     if (text.isNotBlank()) {
                         // Immediately add user message to history for a responsive feel
                         conversationHistory.add(ChatMessage(text, isUser = true))
-                        viewModel.sendMessage(text, "conversation_123")
+                        viewModel.sendMessage(text, "unique_conversation_id_123")
                         text = ""
                         // Auto-scroll when the user sends a message
                         coroutineScope.launch {

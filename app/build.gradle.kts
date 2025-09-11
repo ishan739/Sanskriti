@@ -40,6 +40,8 @@ android {
 }
 
 dependencies {
+//    Loggin Interceptor
+    implementation(libs.logging.interceptor)
 
 //    Koin
 
