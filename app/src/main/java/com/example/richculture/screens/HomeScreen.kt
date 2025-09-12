@@ -62,7 +62,7 @@ val quickActions = listOf(
     QuickAction("Calendar", "Festivals", R.drawable.ic_calendar, Screen.FestiveCalendar.route, listOf(Color(0xFFFFA726), Color(0xFFF57C00))),
     QuickAction("Hub", "Share memories", R.drawable.ic_hub, Screen.CommunityWall.route, listOf(Color(0xFFEC407A), Color(0xFFD81B60))),
     // --- ✅ NEW 4TH ITEM ADDED ---
-    QuickAction("AzadiChat", "Chat with Leaders", R.drawable.ic_chatbot, Screen.AzadiChat.route, listOf(Color(0xFF42A5F5), Color(0xFF1E88E5)))
+    QuickAction("AzadiChat", "Chat with Leaders", R.drawable.ic_chatbot_avatar, Screen.AzadiChat.route, listOf(Color(0xFF42A5F5), Color(0xFF1E88E5)))
 )
 
 val exploreItems = listOf(
@@ -195,7 +195,7 @@ fun QuickActionCard(action: QuickAction, navController: NavController, modifier:
     Card(
         modifier = modifier
             // --- ✅ ASPECT RATIO CHANGED TO MATCH EXPLORE SECTION ---
-            .aspectRatio(0.75f)
+            .aspectRatio(1.25f)
             .clickable { navController.navigate(action.route) },
         shape = RoundedCornerShape(28.dp),
         elevation = CardDefaults.cardElevation(8.dp)

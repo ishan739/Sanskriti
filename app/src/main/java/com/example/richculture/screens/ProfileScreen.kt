@@ -70,7 +70,7 @@ data class RecentOrder(
 
 // --- Dummy Data ---
 
-val dummyProfile = UserProfile("Arjun Patel", "AP", "Mumbai, Maharashtra", "Joined March 2024", "Cultural Explorer")
+val dummyProfile = UserProfile("Harshil", "HV", "Mumbai, Maharashtra", "Joined March 2024", "Cultural Explorer")
 val dummyProgress = ProgressInfo(0.68f, 15, 8, 23)
 
 val dummyBadges = listOf(
@@ -137,7 +137,7 @@ fun ProfileTopAppBar(navController: NavHostController) {
     TopAppBar(
         title = {
             Column {
-                Text("Harshil", fontWeight = FontWeight.Bold , color = Color.Black)
+                Text("My Profile", fontWeight = FontWeight.Bold , color = Color.Black)
                 Text("Cultural journey dashboard", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
         },
