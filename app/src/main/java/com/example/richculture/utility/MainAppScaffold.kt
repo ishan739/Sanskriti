@@ -27,10 +27,8 @@ import com.example.richculture.navigate.Screen
 fun MainAppScaffold(mainViewModel: MainViewModel) {
     val startDestination by mainViewModel.startDestination.collectAsState()
 
-    // Use Crossfade for a smooth transition from loading state to the main app
     Crossfade(targetState = startDestination, animationSpec = tween(500), label = "AppStartAnimation") { destination ->
         if (destination != null) {
-            // --- MAIN APP UI ---
             val navController = rememberNavController()
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentRoute = navBackStackEntry?.destination?.route
@@ -60,15 +58,16 @@ fun MainAppScaffold(mainViewModel: MainViewModel) {
                 NavigationGraph(
                     navController = navController,
                     modifier = Modifier.padding(paddingValues),
-                    startDestination = destination // Pass the determined route
+                    startDestination = destination
                 )
             }
         } else {
-            // --- LOADING STATE ---
+            // This is the loading state UI shown before the ViewModel decides the destination.
+            // You will replace this with your animated splash screen later.
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFFFFF8F5)), // Match your auth screen background
+                    .background(Color(0xFFFFF8F5)),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
@@ -76,3 +75,4 @@ fun MainAppScaffold(mainViewModel: MainViewModel) {
         }
     }
 }
+

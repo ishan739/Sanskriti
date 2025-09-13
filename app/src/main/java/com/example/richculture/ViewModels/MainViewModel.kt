@@ -22,16 +22,18 @@ class MainViewModel(private val prefManager: PrefManager) : ViewModel() {
 
     private fun checkOnboardingStatus() {
         viewModelScope.launch {
-            // Move the disk read operation to a background thread
+            // Move the disk read operation to a background thread for performance
             val isOnboardingComplete = withContext(Dispatchers.IO) {
                 prefManager.isOnboardingComplete()
             }
 
+            // Set the appropriate start destination
             _startDestination.value = if (isOnboardingComplete) {
                 Screen.Auth.route
             } else {
-                Screen.Onboarding.route
+                Screen.Onboarding.route // New users start at our unified onboarding screen
             }
         }
     }
 }
+

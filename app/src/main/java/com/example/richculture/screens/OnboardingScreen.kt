@@ -1,5 +1,8 @@
 package com.example.richculture.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -8,16 +11,18 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -26,213 +31,150 @@ import androidx.navigation.NavController
 import com.example.richculture.R
 import com.example.richculture.navigate.Screen
 import com.example.richculture.utility.PrefManager
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-// ✅ Using the more detailed data class to support different UI for the final page
+// Data class to hold info for each onboarding page
 private data class OnboardingPageInfo(
+    val backgroundResId: Int,
     val title: String,
     val subtitle: String,
-    val buttonText: String,
-    val backgroundResId: Int,
-    val isFinalPage: Boolean = false
-)
-
-// ✅ Using the more detailed content for the three onboarding screens
-private val onboardingPages = listOf(
-    OnboardingPageInfo(
-        title = "Sanskriti",
-        subtitle = "Discover India's Rich Cultural Heritage",
-        buttonText = "Explore Heritage",
-        backgroundResId = R.drawable.ic_hawa // TODO: Replace with your background image
-    ),
-    OnboardingPageInfo(
-        title = "Uncover Timeless Stories",
-        subtitle = "Dive into the rich tapestry of Indian folklore, mythology, and history. Every legend has a lesson, every story a soul.",
-        buttonText = "I Am Curious",
-        backgroundResId = R.drawable.ic_kathak // TODO: Replace with your background image
-    ),
-    OnboardingPageInfo(
-        title = "Welcome to Sanskriti",
-        subtitle = "Embark on a journey through India's magnificent cultural heritage. Explore monuments, traditions, festivals, and connect with our rich history.",
-        buttonText = "Begin Your Journey",
-        backgroundResId = R.drawable.ic_hawa2, // TODO: Replace with your background image
-        isFinalPage = true
-    )
+    val buttonText: String? = null // Button is optional for the auto-advancing splash
 )
 
 @Composable
 fun OnboardingScreen(navController: NavController) {
     val context = LocalContext.current
-    val prefManager = PrefManager(context)
+    val prefManager = remember { PrefManager(context) }
     val scope = rememberCoroutineScope()
-    val pagerState = rememberPagerState(pageCount = { onboardingPages.size })
+
+    val pages = listOf(
+        OnboardingPageInfo(
+            backgroundResId = R.drawable.ic_tajmahal, // Replace with your high-res image
+            title = "Sanskriti",
+            subtitle = "Explore, Experience & Embrace\nIndia's Heritage"
+        ),
+        OnboardingPageInfo(
+            backgroundResId = R.drawable.ic_hawa, // Replace with your high-res image
+            title = "Architectural Wonders",
+            subtitle = "Journey through India's magnificent architectural wonders and historical landmarks.",
+            buttonText = "Next"
+        ),
+        OnboardingPageInfo(
+            backgroundResId = R.drawable.ic_kathak, // Replace with your high-res image
+            title = "Vibrant Traditions",
+            subtitle = "Join the colorful festivals that bring communities together in joy and tradition.",
+            buttonText = "Get Started"
+        )
+    )
+
+    val pagerState = rememberPagerState(pageCount = { pages.size })
+
+    // ✅ This LaunchedEffect handles the auto-scroll from the first page
+    LaunchedEffect(pagerState.currentPage) {
+        if (pagerState.currentPage == 0) {
+            delay(2500) // Wait for 2.5 seconds on the intro splash
+            scope.launch {
+                pagerState.animateScrollToPage(1)
+            }
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            userScrollEnabled = pagerState.currentPage != 0 // Disable scroll on the first page
         ) { pageIndex ->
-            val page = onboardingPages[pageIndex]
-
-            // ✅ THE MAIN CHANGE: We now switch between two different UI layouts
-            if (page.isFinalPage) {
-                // Use the card-based UI for the last page
-                FinalOnboardingPageUI(page = page) {
-                    prefManager.setOnboardingComplete()
-                    navController.navigate(Screen.Auth.route) {
-                        popUpTo(Screen.Onboarding.route) { inclusive = true }
+            val page = pages[pageIndex]
+            OnboardingPageUI(
+                page = page,
+                onButtonClick = {
+                    if (pageIndex < pages.size - 1) {
+                        scope.launch {
+                            pagerState.animateScrollToPage(pageIndex + 1)
+                        }
+                    } else {
+                        // This is the last page, finish onboarding
+                        prefManager.setOnboardingComplete()
+                        navController.navigate(Screen.Auth.route) {
+                            popUpTo(Screen.Onboarding.route) { inclusive = true }
+                        }
                     }
                 }
-            } else {
-                // Use the standard full-screen UI for the first two pages
-                StandardOnboardingPageUI(page = page) {
-                    scope.launch {
-                        pagerState.animateScrollToPage(pageIndex + 1)
-                    }
-                }
-            }
-        }
-
-        // Pager Indicator - only shown for the standard pages
-        if (!pagerState.currentPage.equals(onboardingPages.size - 1)) {
-            Row(
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 120.dp)
-                    .height(20.dp),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                // We only show indicators for the first two pages
-                repeat(onboardingPages.size - 1) { iteration ->
-                    val color = if (pagerState.currentPage == iteration) Color(0xFFFF9700) else Color.White.copy(alpha = 0.5f)
-                    Box(
-                        modifier = Modifier
-                            .padding(4.dp)
-                            .clip(CircleShape)
-                            .background(color)
-                            .size(12.dp)
-                    )
-                }
-            }
+            )
         }
     }
 }
 
-// ✅ This is the UI for the first and second pages
 @Composable
-private fun StandardOnboardingPageUI(page: OnboardingPageInfo, onButtonClick: () -> Unit) {
+private fun OnboardingPageUI(
+    page: OnboardingPageInfo,
+    onButtonClick: () -> Unit
+) {
+    val serifFontFamily = FontFamily(Font(R.font.playfair_display_regular)) // Ensure you have this font in res/font
+
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
             painter = painterResource(id = page.backgroundResId),
             contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
         )
+        // A subtle gradient overlay to make text more readable
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.4f))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
+                        startY = 800f
+                    )
+                )
         )
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(horizontal = 32.dp, vertical = 60.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.weight(1f))
-            Image(
-                painter = painterResource(id = R.drawable.ic_main), // TODO: Replace with your app logo
-                contentDescription = "App Logo",
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-            )
             Text(
-                text = "Sanskriti",
+                text = page.title,
                 color = Color.White,
                 fontSize = 42.sp,
-                fontWeight = FontWeight.Bold
+                fontFamily = serifFontFamily,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                lineHeight = 50.sp
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = page.subtitle,
-                color = Color.White.copy(alpha = 0.8f),
+                color = Color.White.copy(alpha = 0.9f),
                 fontSize = 18.sp,
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.weight(1f))
-            Button(
-                onClick = onButtonClick,
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9700)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-            ) {
-                Text(page.buttonText, fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}
+            Spacer(modifier = Modifier.height(40.dp))
 
-// ✅ This is the special UI for the final page
-@Composable
-private fun FinalOnboardingPageUI(page: OnboardingPageInfo, onButtonClick: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Image(
-            painter = painterResource(id = page.backgroundResId),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.4f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .padding(16.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f)),
-                elevation = CardDefaults.cardElevation(8.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_main), // TODO: Replace with your app logo
-                        contentDescription = "App Logo",
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
+            // Only show the button if buttonText is provided
+            if (page.buttonText != null) {
+                Button(
+                    onClick = onButtonClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(55.dp),
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(page.title, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(page.subtitle, textAlign = TextAlign.Center, color = Color.Gray)
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Button(
-                        onClick = onButtonClick,
-                        shape = RoundedCornerShape(50),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                            .background(
-                                Brush.horizontalGradient(listOf(Color(0xFFFF6F00), Color(0xFFEC407A))),
-                                shape = RoundedCornerShape(50)
-                            ),
-                        contentPadding = PaddingValues()
-                    ) {
-                        Text(page.buttonText, fontWeight = FontWeight.Bold, color = Color.White)
-                    }
+                ) {
+                    Text(
+                        text = page.buttonText,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
                 }
             }
         }

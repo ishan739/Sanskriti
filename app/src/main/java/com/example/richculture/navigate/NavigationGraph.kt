@@ -27,7 +27,7 @@ fun NavigationGraph(
         startDestination = startDestination,
         modifier = modifier
     ) {
-        // --- Onboarding & Auth Screens (No special transition) ---
+        // --- ✅ NEW: Splash & Onboarding Flow Screens (No special transitions) ---
         composable(Screen.Onboarding.route) {
             OnboardingScreen(navController)
         }
@@ -46,12 +46,11 @@ fun NavigationGraph(
 
 
         // --- Main App Screens with CUBE TRANSITION ---
-        // ✅ ADDED Screen.Camera to this list
         val allScreens = listOf(
             Screen.Home, Screen.Stories, Screen.Bazaar, Screen.Chatbot, Screen.Profile,
             Screen.Order, Screen.HeritageExplorer, Screen.Trip, Screen.ArtsAndTraditions,
             Screen.FestivalsAndFood, Screen.ARScanAction, Screen.FestiveCalendar, Screen.CommunityWall,
-            Screen.AzadiChat, Screen.Camera // <-- New screen added here
+            Screen.AzadiChat, Screen.Camera
         )
 
         allScreens.forEach { screen ->
@@ -77,7 +76,6 @@ fun NavigationGraph(
                     Screen.FestiveCalendar -> FestiveCalendarScreen(navController)
                     Screen.CommunityWall -> CommunityWallScreen(navController)
                     Screen.AzadiChat -> AzadiChatScreen(navController)
-                    // ✅ ADDED Case for the new CameraScreen
                     Screen.Camera -> CameraScreen(navController)
                     else -> {}
                 }
@@ -85,3 +83,4 @@ fun NavigationGraph(
         }
     }
 }
+

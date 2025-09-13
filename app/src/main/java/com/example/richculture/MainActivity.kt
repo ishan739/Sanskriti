@@ -7,7 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.core.view.WindowCompat
 import com.example.richculture.ViewModels.MainViewModel
-import com.example.richculture.navigation.MainAppScaffold // Import the scaffold
+import com.example.richculture.navigation.MainAppScaffold
 import com.example.richculture.ui.theme.RichCultureTheme
 import org.koin.androidx.compose.koinViewModel
 
@@ -19,7 +19,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             RichCultureTheme {
-                // ✅ Pass the ViewModel created by Koin to the Scaffold
+                // Use Koin to get the ViewModel and pass it to the main UI
                 val mainViewModel: MainViewModel = koinViewModel()
                 MainAppScaffold(mainViewModel = mainViewModel)
             }
