@@ -35,23 +35,23 @@ fun NavigationGraph(
             AuthScreen(navController)
         }
 
-        // --- ✅ NEW: Reusable Chat Interface Screen for leaders ---
+        // --- Reusable Chat Interface Screen ---
         composable(
             route = "chat_interface/{leaderId}",
             arguments = listOf(navArgument("leaderId") { type = NavType.StringType })
         ) { backStackEntry ->
-            // Extract the leaderId from the navigation arguments
             val leaderId = backStackEntry.arguments?.getString("leaderId") ?: ""
             ChatInterfaceScreen(navController = navController, leaderId = leaderId)
         }
 
 
         // --- Main App Screens with CUBE TRANSITION ---
+        // ✅ ADDED Screen.Camera to this list
         val allScreens = listOf(
             Screen.Home, Screen.Stories, Screen.Bazaar, Screen.Chatbot, Screen.Profile,
             Screen.Order, Screen.HeritageExplorer, Screen.Trip, Screen.ArtsAndTraditions,
             Screen.FestivalsAndFood, Screen.ARScanAction, Screen.FestiveCalendar, Screen.CommunityWall,
-            Screen.AzadiChat
+            Screen.AzadiChat, Screen.Camera // <-- New screen added here
         )
 
         allScreens.forEach { screen ->
@@ -77,10 +77,11 @@ fun NavigationGraph(
                     Screen.FestiveCalendar -> FestiveCalendarScreen(navController)
                     Screen.CommunityWall -> CommunityWallScreen(navController)
                     Screen.AzadiChat -> AzadiChatScreen(navController)
+                    // ✅ ADDED Case for the new CameraScreen
+                    Screen.Camera -> CameraScreen(navController)
                     else -> {}
                 }
             }
         }
     }
 }
-

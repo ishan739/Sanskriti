@@ -41,13 +41,18 @@ sealed class Screen(
     object FestivalsAndFood : Screen("festivals_food", "Festivals & Food", R.drawable.ic_camera)
     object ARScanAction : Screen("arscan_action", "AR Scan", R.drawable.ic_scan)
 
+    // ✅ NEW Camera Screen for CameraX
+    object Camera : Screen("camera_screen", "Camera", -1) // This screen is navigated to, doesn't need UI elements
+
     object AzadiChat : Screen("azadi_chat", "Azadi Chat", R.drawable.ic_chatbot)
     object FestiveCalendar : Screen("festive_calendar", "Festive Calendar", R.drawable.ic_calendar)
     object CommunityWall : Screen("community_wall", "Community Wall", R.drawable.ic_community)
 
-    // ✅ NEW: Onboarding and Authentication Screens
-    // These don't need icons or colors as they won't appear in the bottom bar.
+    // --- Onboarding and Authentication Screens ---
+    // These don't need icons or colors as they won't appear in UI lists like bottom bars.
     object Onboarding : Screen("onboarding", "Onboarding", -1) // -1 for no drawable
     object Auth : Screen("auth", "Authentication", -1)
+
+
 
 }

@@ -40,6 +40,12 @@ android {
 }
 
 dependencies {
+
+    implementation(libs.androidx.camera.core.v131)
+    implementation(libs.androidx.camera.camera2.v131)
+    implementation(libs.androidx.camera.lifecycle.v131)
+    implementation(libs.androidx.camera.view.v131)
+
 //    Loggin Interceptor
     implementation(libs.logging.interceptor)
 

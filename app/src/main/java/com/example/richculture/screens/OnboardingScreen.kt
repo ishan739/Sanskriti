@@ -1,6 +1,5 @@
 package com.example.richculture.screens
 
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -143,7 +142,7 @@ private fun StandardOnboardingPageUI(page: OnboardingPageInfo, onButtonClick: ()
         ) {
             Spacer(modifier = Modifier.weight(1f))
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher_foreground), // TODO: Replace with your app logo
+                painter = painterResource(id = R.drawable.ic_main), // TODO: Replace with your app logo
                 contentDescription = "App Logo",
                 modifier = Modifier
                     .size(120.dp)
@@ -206,7 +205,7 @@ private fun FinalOnboardingPageUI(page: OnboardingPageInfo, onButtonClick: () ->
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.ic_launcher_foreground), // TODO: Replace with your app logo
+                        painter = painterResource(id = R.drawable.ic_main), // TODO: Replace with your app logo
                         contentDescription = "App Logo",
                         modifier = Modifier
                             .size(80.dp)
