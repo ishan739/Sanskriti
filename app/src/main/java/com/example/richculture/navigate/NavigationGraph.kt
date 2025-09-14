@@ -27,13 +27,12 @@ fun NavigationGraph(
         startDestination = startDestination,
         modifier = modifier
     ) {
-        // --- ✅ NEW: Splash & Onboarding Flow Screens (No special transitions) ---
-        composable(Screen.Onboarding.route) {
-            OnboardingScreen(navController)
-        }
-        composable(Screen.Auth.route) {
-            AuthScreen(navController)
-        }
+        // --- Startup Flow Screens ---
+        composable(Screen.Onboarding.route) { OnboardingScreen(navController) }
+        composable(Screen.Auth.route) { AuthScreen(navController) }
+
+        // ✅ NEW: Destination for the Create Post Screen
+        composable(Screen.CreatePost.route) { CreatePostScreen(navController) }
 
         // --- Reusable Chat Interface Screen ---
         composable(

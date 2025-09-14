@@ -1,4 +1,5 @@
 package com.example.richculture.retro
+import CommunityApi
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -66,4 +67,11 @@ object RetrofitInstance {
     val kalamApi: ChatApi by lazy { kalamRetrofit.create(ChatApi::class.java) }
     val vivekanandaApi: ChatApi by lazy { vivekanandaRetrofit.create(ChatApi::class.java) }
     val gandhiApi: ChatApi by lazy { gandhiRetrofit.create(ChatApi::class.java) }
+
+//    Community Api
+
+    val communityApi: CommunityApi by lazy { retrofit.create(CommunityApi::class.java) }
+
+    val userApi: UserApi by lazy { retrofit.create(UserApi::class.java) }
+
 }

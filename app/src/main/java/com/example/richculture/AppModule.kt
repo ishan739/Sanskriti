@@ -1,15 +1,28 @@
 package com.example.richculture
 
+import com.example.richculture.ViewModels.CommunityViewModel
 import com.example.richculture.ViewModels.MainViewModel
+import com.example.richculture.ViewModels.UserViewModel
 import com.example.richculture.utility.PrefManager
+import com.example.richculture.utility.SessionManager
+import com.example.richculture.utility.TokenManager
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 val appModule = module {
-    // Tells Koin how to create a single instance of PrefManager
+    // Manages onboarding status
     single { PrefManager(androidContext()) }
+    // Manages the raw auth token string
+    single { TokenManager(androidContext()) }
 
-    // Tells Koin how to create a MainViewModel and injects PrefManager into it
+    // ✅ NEW: Manages the global user session state (singleton)
+    single { SessionManager(androidContext()) }
+
+    // ViewModels
     viewModel { MainViewModel(get()) }
+    // ✅ UPDATED: UserViewModel now depends on SessionManager
+    viewModel { UserViewModel(get()) }
+    viewModel { CommunityViewModel() }
 }
+

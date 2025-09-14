@@ -1,5 +1,6 @@
 package com.example.richculture.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,6 +26,7 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -42,9 +44,11 @@ import coil.compose.AsyncImage
 import com.example.richculture.Data.Story
 import com.example.richculture.R
 import com.example.richculture.ViewModels.StoryViewModel
+import com.example.richculture.ViewModels.UserViewModel
 import com.example.richculture.navigate.ExploreItem
 import com.example.richculture.navigate.QuickAction
 import com.example.richculture.navigate.Screen
+import org.koin.androidx.compose.koinViewModel
 import java.util.concurrent.TimeUnit
 
 // --- VIBRANT THEME COLORS ---
@@ -75,8 +79,11 @@ val exploreItems = listOf(
 @Composable
 fun HomeScreen(
     navController: NavController,
-    storyViewModel: StoryViewModel = viewModel()
+    storyViewModel: StoryViewModel = viewModel(),
+    userViewModel: UserViewModel = koinViewModel() // ✅ Inject UserViewModel
 ) {
+    val currentUser by userViewModel.currentUser.collectAsState()
+
     val storyOfTheDay by storyViewModel.storyOfTheDay.collectAsState()
     val isLoading by storyViewModel.isStoryOfTheDayLoading.collectAsState()
     val isPlaying by storyViewModel.isPlaying.collectAsState()
@@ -96,9 +103,8 @@ fun HomeScreen(
         contentPadding = PaddingValues(bottom = 100.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item { MainTopAppBar(navController) }
+        item { MainTopAppBar(navController, userName = currentUser?.name) } // ✅ Pass user name
         item { SectionHeader("Quick Actions") }
-        // --- ✅ REPLACED ROW WITH GRID ---
         item { QuickActionsGrid(navController) }
         item { SectionHeader("Explore Heritage") }
         item { ExploreGrid(navController) }
@@ -126,7 +132,9 @@ fun HomeScreen(
 }
 
 @Composable
-fun MainTopAppBar(navController: NavController) {
+fun MainTopAppBar(navController: NavController, userName: String?) {
+    val context = LocalContext.current
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = BottomArcShapeHome(arcHeight = 30.dp),
@@ -141,17 +149,26 @@ fun MainTopAppBar(navController: NavController) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                Text("Namaste Harshi!", style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                // ✅ Display personalized greeting
+                Text("Namaste ${userName ?: ""}!", style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White))
                 Text("✨ Discover India's timeless heritage", fontSize = 14.sp, color = Color.White.copy(alpha = 0.9f))
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { /* TODO */ }) {
                     Icon(Icons.Outlined.Notifications, contentDescription = "Notifications", tint = Color.White.copy(alpha = 0.9f))
                 }
-                IconButton(onClick = { navController.navigate("profile") }) {
+                IconButton(onClick = {
+                    // ✅ Protect the profile route
+                    if (userName != null) {
+                        navController.navigate(Screen.Profile.route)
+                    } else {
+                        Toast.makeText(context, "Please log in to view your profile.", Toast.LENGTH_SHORT).show()
+                        navController.navigate(Screen.Auth.route)
+                    }
+                }) {
                     Image(
                         painter = painterResource(id = R.drawable.ic_profile),
-                        contentDescription = null, // No tint is applied
+                        contentDescription = "Profile",
                         modifier = Modifier.size(32.dp)
                     )
                 }

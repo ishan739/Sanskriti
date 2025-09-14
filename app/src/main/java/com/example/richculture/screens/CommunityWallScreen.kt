@@ -1,9 +1,10 @@
 package com.example.richculture.screens
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,93 +12,188 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.example.richculture.Data.Author
+import com.example.richculture.Data.Comment
+import com.example.richculture.Data.PostResponse
 import com.example.richculture.R
+import com.example.richculture.ViewModels.CommunityViewModel
+import com.example.richculture.ViewModels.UserViewModel
+import com.example.richculture.navigate.Screen
+import com.example.richculture.utility.TokenManager
+import org.koin.androidx.compose.koinViewModel
+import java.text.SimpleDateFormat
+import java.util.*
 
-// --- New Data Models for the Redesigned Screen ---
-
+// --- Data Models for UI ---
 enum class CommunityTab { Memories, Recipes }
-
-data class CommunityPost(
-    val id: Int,
-    val userName: String,
-    val userInitials: String,
-    val location: String,
-    val timestamp: String,
-    val imageResId: Int,
-    val caption: String,
-    val likes: Int,
-    val comments: Int
-)
-
 data class Recipe(
-    val id: Int,
-    val name: String,
-    val cuisine: String,
-    val imageResId: Int,
-    val timeMin: Int,
-    val difficulty: String,
-    val rating: Float,
-    val likes: Int
+    val id: Int, val name: String, val cuisine: String, val imageResId: Int,
+    val timeMin: Int, val difficulty: String, val rating: Float, val likes: Int
 )
 
 // --- Dummy Data ---
-
-val communityPosts = listOf(
-    CommunityPost(1, "Priya Sharma", "PS", "Taj Mahal, Agra", "2 hours ago", R.drawable.ic_tajmahal, "Mesmerized by the eternal symbol of love! The intricate marble work is breathtaking. #TajMahal #IndianHeritage", 48, 12),
-    CommunityPost(2, "Raj Patel", "RP", "Holi Festival, Mathura", "1 day ago", R.drawable.ic_janmashtami, "Colors of joy at the Holi festival! An unforgettable experience.", 102, 25)
-)
-
 val recipes = listOf(
     Recipe(1, "Masala Chai", "North Indian", R.drawable.ic_pattachitra, 15, "Easy", 4.8f, 89),
-    Recipe(2, "Butter Chicken", "Punjabi", R.drawable.ic_blue_pottery, 45, "Medium", 4.9f, 156),
-    Recipe(3, "Samosa", "Street Food", R.drawable.ic_rajasthani_scarf, 60, "Medium", 4.7f, 92)
+    Recipe(2, "Butter Chicken", "Punjabi", R.drawable.ic_blue_pottery, 45, "Medium", 4.9f, 156)
 )
 
-
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun CommunityWallScreen(navController: NavController) {
+fun CommunityWallScreen(
+    navController: NavController,
+    communityViewModel: CommunityViewModel = koinViewModel(),
+    userViewModel: UserViewModel = koinViewModel()
+) {
     var selectedTab by remember { mutableStateOf(CommunityTab.Memories) }
+    val context = LocalContext.current
+    val tokenManager = remember { TokenManager(context) }
+    val token = tokenManager.getToken()
+
+    val currentUserFromVM by userViewModel.currentUser.collectAsState()
+
+    var postsState by remember { mutableStateOf<List<PostResponse>?>(null) }
+    val initialPosts by communityViewModel.posts.observeAsState()
+
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(initialPosts) {
+        if (initialPosts != null) {
+            postsState = initialPosts
+            isRefreshing = false
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (postsState == null) {
+            isRefreshing = true
+            communityViewModel.getPosts()
+        }
+    }
+
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            communityViewModel.getPosts()
+        }
+    )
 
     Scaffold(
         topBar = { CommunityTopAppBar(navController) },
-        containerColor = Color(0xFFF4F7FA) // Soft off-white background
+        containerColor = Color(0xFFF4F7FA)
     ) { padding ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(padding)
+                .pullRefresh(pullRefreshState)
         ) {
-            item {
-                MainTabs(selectedTab = selectedTab, onTabSelected = { selectedTab = it })
-            }
-
-            item {
-                AnimatedContent(targetState = selectedTab, label = "Tab Animation") { tab ->
-                    when (tab) {
-                        CommunityTab.Memories -> MemoriesContent()
-                        CommunityTab.Recipes -> RecipesContent()
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                item { MainTabs(selectedTab = selectedTab, onTabSelected = { selectedTab = it }) }
+                item {
+                    AnimatedContent(targetState = selectedTab, label = "Tab Animation") { tab ->
+                        when (tab) {
+                            CommunityTab.Memories -> {
+                                when {
+                                    postsState == null -> {
+                                        // Covered by the refresh indicator
+                                    }
+                                    else -> {
+                                        MemoriesContent(
+                                            navController = navController,
+                                            posts = postsState!!,
+                                            isUserLoggedIn = currentUserFromVM != null,
+                                            onLike = { postId ->
+                                                if (currentUserFromVM != null && token != null) {
+                                                    postsState = postsState?.map { post ->
+                                                        if (post._id == postId) {
+                                                            val newLikes = if (post.likes.contains(currentUserFromVM!!._id)) {
+                                                                post.likes - currentUserFromVM!!._id
+                                                            } else {
+                                                                post.likes + currentUserFromVM!!._id
+                                                            }
+                                                            post.copy(likes = newLikes)
+                                                        } else post
+                                                    }
+                                                    communityViewModel.likePost(postId, token)
+                                                } else {
+                                                    Toast.makeText(context, "Please log in to like posts.", Toast.LENGTH_SHORT).show()
+                                                }
+                                            },
+                                            onAddComment = { postId, text ->
+                                                if (currentUserFromVM != null && token != null) {
+                                                    postsState = postsState?.map { post ->
+                                                        if (post._id == postId) {
+                                                            val newComment = Comment(
+                                                                _id = UUID.randomUUID().toString(),
+                                                                text = text,
+                                                                author = Author(currentUserFromVM!!._id, currentUserFromVM!!.name, currentUserFromVM!!.profileImage),
+                                                                createdAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date())
+                                                            )
+                                                            post.copy(comments = post.comments + newComment)
+                                                        } else post
+                                                    }
+                                                    communityViewModel.addComment(postId, text, token)
+                                                } else {
+                                                    Toast.makeText(context, "Please log in to comment.", Toast.LENGTH_SHORT).show()
+                                                }
+                                            },
+                                            onDeleteComment = { postId, commentId ->
+                                                if (currentUserFromVM != null && token != null) {
+                                                    postsState = postsState?.map { post ->
+                                                        if (post._id == postId) {
+                                                            post.copy(comments = post.comments.filterNot { it._id == commentId })
+                                                        } else post
+                                                    }
+                                                    communityViewModel.deleteComment(postId, commentId, token)
+                                                }
+                                            },
+                                            currentUserId = currentUserFromVM?._id ?: ""
+                                        )
+                                    }
+                                }
+                            }
+                            CommunityTab.Recipes -> RecipesContent()
+                        }
                     }
                 }
             }
+
+            PullRefreshIndicator(
+                refreshing = isRefreshing,
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter),
+                contentColor = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }
@@ -105,27 +201,9 @@ fun CommunityWallScreen(navController: NavController) {
 @Composable
 fun CommunityTopAppBar(navController: NavController) {
     Box {
-        Spacer(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(110.dp)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color(0xFF81C784), Color(0xFF2E7D32))
-                    ),
-                    shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
-                )
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 24.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick = { navController.popBackStack() },
-                modifier = Modifier.background(Color.White.copy(alpha = 0.2f), CircleShape)
-            ) {
+        Spacer(modifier = Modifier.fillMaxWidth().height(110.dp).background(Brush.verticalGradient(listOf(Color(0xFF81C784), Color(0xFF2E7D32))), shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)))
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { navController.popBackStack() }, modifier = Modifier.background(Color.White.copy(alpha = 0.2f), CircleShape)) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
             }
             Spacer(modifier = Modifier.width(16.dp))
@@ -139,68 +217,59 @@ fun CommunityTopAppBar(navController: NavController) {
 
 @Composable
 fun MainTabs(selectedTab: CommunityTab, onTabSelected: (CommunityTab) -> Unit) {
-    Card(
-        shape = CircleShape,
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.7f)),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        elevation = CardDefaults.cardElevation(0.dp)
-    ) {
+    Card(shape = CircleShape, colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), elevation = CardDefaults.cardElevation(4.dp)) {
         Row(modifier = Modifier.padding(6.dp)) {
-            TabButton(
-                text = "Memories",
-                icon = Icons.Default.AddCircle,
-                isSelected = selectedTab == CommunityTab.Memories,
-                activeColor = Color(0xFF7E57C2),
-                modifier = Modifier.weight(1f)
-            ) { onTabSelected(CommunityTab.Memories) }
-
-            TabButton(
-                text = "Recipes",
-                icon = Icons.Default.AddCircle,
-                isSelected = selectedTab == CommunityTab.Recipes,
-                activeColor = Color(0xFF388E3C),
-                modifier = Modifier.weight(1f)
-            ) { onTabSelected(CommunityTab.Recipes) }
+            TabButton(text = "Memories", icon = painterResource(id = R.drawable.ic_story), isSelected = selectedTab == CommunityTab.Memories, activeColor = Color(0xFF7E57C2), modifier = Modifier.weight(1f)) { onTabSelected(CommunityTab.Memories) }
+            TabButton(text = "Recipes", icon = painterResource(id = R.drawable.ic_recipe), isSelected = selectedTab == CommunityTab.Recipes, activeColor = Color(0xFF388E3C), modifier = Modifier.weight(1f)) { onTabSelected(CommunityTab.Recipes) }
         }
     }
 }
 
 @Composable
-fun MemoriesContent() {
+fun MemoriesContent(
+    navController: NavController,
+    posts: List<PostResponse>,
+    isUserLoggedIn: Boolean,
+    onLike: (String) -> Unit,
+    onAddComment: (String, String) -> Unit,
+    onDeleteComment: (String, String) -> Unit,
+    currentUserId: String
+) {
     Column(
         modifier = Modifier.padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Button(
-            onClick = { /* Share Memory */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-            contentPadding = PaddingValues()
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(Color(0xFFAB47BC), Color(0xFF7E57C2))
-                        )
-                    ),
-                contentAlignment = Alignment.Center
+        if (isUserLoggedIn) {
+            Button(
+                onClick = { navController.navigate(Screen.CreatePost.route) },
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                contentPadding = PaddingValues()
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Add, contentDescription = "Share", tint = Color.White)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Share Your Memory", color = Color.White, fontWeight = FontWeight.Bold)
+                Box(modifier = Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color(0xFFAB47BC), Color(0xFF7E57C2)))), contentAlignment = Alignment.Center) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Add, contentDescription = "Share", tint = Color.White)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Share Your Memory", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
-        communityPosts.forEach { post ->
-            MemoryPostCard(post = post)
+        if (posts.isEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                Text("No memories shared yet. Be the first!", color = Color.Gray)
+            }
+        } else {
+            posts.forEach { post ->
+                MemoryPostCard(
+                    post = post,
+                    currentUserId = currentUserId,
+                    onLikeClicked = { onLike(post._id) },
+                    onAddComment = { text -> onAddComment(post._id, text) },
+                    onDeleteComment = { commentId -> onDeleteComment(post._id, commentId) }
+                )
+            }
         }
     }
 }
@@ -212,77 +281,126 @@ fun RecipesContent() {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         RecipeFilterChips()
-        recipes.forEach { recipe ->
-            RecipeCard(recipe = recipe)
+        recipes.forEach { recipe -> RecipeCard(recipe = recipe) }
+    }
+}
+
+@Composable
+fun MemoryPostCard(
+    post: PostResponse,
+    currentUserId: String,
+    onLikeClicked: () -> Unit,
+    onAddComment: (String) -> Unit,
+    onDeleteComment: (String) -> Unit
+) {
+    val isLiked = post.likes.contains(currentUserId)
+    var isCommentSectionVisible by remember { mutableStateOf(false) }
+
+    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp)) {
+        Column {
+            Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                AsyncImage(model = post.author?.profileImage, contentDescription = "Profile Image", modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer), contentScale = ContentScale.Crop, error = painterResource(id = R.drawable.ic_profile))
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    // ✅ SAFETY FIX: Use safe call `?.` and elvis operator `?:`
+                    Text(post.author?.name ?: "Unknown User", fontWeight = FontWeight.Bold)
+                    Text(post.location ?: "", fontSize = 12.sp, color = Color.Gray)
+                }
+            }
+            AsyncImage(model = post.media, contentDescription = post.caption, modifier = Modifier.fillMaxWidth().height(350.dp), contentScale = ContentScale.Crop)
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(post.caption ?: "", lineHeight = 20.sp)
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                    PostActionButton(icon = painterResource(id = if (isLiked) R.drawable.ic_like_filled else R.drawable.ic_like), text = "${post.likes.size}", onClick = onLikeClicked, tint = if (isLiked) Color.Red else Color.Gray)
+                    PostActionButton(icon = painterResource(id = R.drawable.ic_comment), text = "${post.comments.size}", onClick = { isCommentSectionVisible = !isCommentSectionVisible })
+                    PostActionButton(icon = painterResource(id = R.drawable.ic_share), text = "Share")
+                }
+                AnimatedVisibility(visible = isCommentSectionVisible) {
+                    CommentSection(
+                        comments = post.comments,
+                        onAddComment = onAddComment,
+                        onDeleteComment = onDeleteComment
+                    )
+                }
+            }
         }
     }
 }
 
+@Composable
+fun CommentSection(
+    comments: List<Comment>,
+    onAddComment: (String) -> Unit,
+    onDeleteComment: (String) -> Unit
+) {
+    Column(modifier = Modifier.padding(top = 16.dp)) {
+        Divider()
+        Spacer(modifier = Modifier.height(12.dp))
+        CommentInputField(onCommentPosted = onAddComment)
+        Spacer(modifier = Modifier.height(12.dp))
+        comments.forEach { comment ->
+            CommentItem(comment = comment, onDelete = { onDeleteComment(comment._id) })
+        }
+    }
+}
 
 @Composable
-fun MemoryPostCard(post: CommunityPost) {
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
-        Column {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(post.userInitials, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(post.userName, fontWeight = FontWeight.Bold)
-                    Text("${post.location} • ${post.timestamp}", fontSize = 12.sp, color = Color.Gray)
-                }
-            }
-            Image(
-                painter = painterResource(id = post.imageResId),
-                contentDescription = post.caption,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp),
-                contentScale = ContentScale.Crop
-            )
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(post.caption, lineHeight = 20.sp)
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                    PostActionButton(icon = Icons.Default.FavoriteBorder, text = "${post.likes}")
-                    PostActionButton(icon = Icons.Default.AddCircle, text = "${post.comments}")
-                    PostActionButton(icon = Icons.Default.Share, text = "Share")
-                }
+fun CommentItem(comment: Comment, onDelete: () -> Unit) {
+    val userViewModel: UserViewModel = koinViewModel()
+    val currentUser by userViewModel.currentUser.collectAsState()
+
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.Top) {
+        AsyncImage(model = comment.author?.profileImage, contentDescription = "Author", modifier = Modifier.size(32.dp).clip(CircleShape), error = painterResource(id = R.drawable.ic_profile))
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            // ✅ CRITICAL FIX: Use safe call `?.` and elvis operator `?:`
+            Text(comment.author?.name ?: "Unknown User", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text(comment.text ?: "", fontSize = 14.sp, color = Color.DarkGray)
+        }
+        // ✅ CRITICAL FIX: Use safe call `?.` to prevent crash if author is null
+        if (comment.author?._id == currentUser?._id) {
+            IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete Comment", tint = Color.Gray)
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CommentInputField(onCommentPosted: (String) -> Unit) {
+    var text by remember { mutableStateOf("") }
+    OutlinedTextField(
+        value = text,
+        onValueChange = { text = it },
+        modifier = Modifier.fillMaxWidth(),
+        placeholder = { Text("Add a comment...") },
+        trailingIcon = {
+            IconButton(
+                onClick = {
+                    if (text.isNotBlank()) {
+                        onCommentPosted(text)
+                        text = ""
+                    }
+                }
+            ) {
+                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Post Comment")
+            }
+        },
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            cursorColor = MaterialTheme.colorScheme.primary
+        ),
+        shape = RoundedCornerShape(24.dp)
+    )
 }
 
 @Composable
 fun RecipeCard(recipe: Recipe) {
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
+    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp)) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Image(
-                painter = painterResource(id = recipe.imageResId),
-                contentDescription = recipe.name,
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(RoundedCornerShape(16.dp)),
-                contentScale = ContentScale.Crop
-            )
+            Image(painter = painterResource(id = recipe.imageResId), contentDescription = recipe.name, modifier = Modifier.size(100.dp).clip(RoundedCornerShape(16.dp)), contentScale = ContentScale.Crop)
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
@@ -292,19 +410,13 @@ fun RecipeCard(recipe: Recipe) {
                 Text(recipe.cuisine, color = Color.Gray)
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    MetaInfos(icon = Icons.Default.AddCircle, text = "${recipe.timeMin} mins")
-                    MetaInfos(icon = Icons.Default.AddCircle, text = recipe.difficulty)
-                    MetaInfos(icon = Icons.Default.Star, text = "${recipe.rating}")
+                    MetaInfos(painterResource(id = R.drawable.ic_time), text = "${recipe.timeMin} mins")
+                    MetaInfos(painterResource(id = R.drawable.ic_chart), text = recipe.difficulty)
+                    MetaInfos(painterResource(id = R.drawable.ic_ratinh), text = "${recipe.rating}")
                 }
                 Text("${recipe.likes} likes", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp))
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    onClick = { /* View Recipe */ },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF388E3C)),
-                    shape = CircleShape
-                ) {
-                    Text("View Recipe")
-                }
+                Button(onClick = { /* View Recipe */ }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF388E3C)), shape = CircleShape) { Text("View Recipe") }
             }
         }
     }
@@ -316,32 +428,14 @@ fun RecipeFilterChips() {
     var selectedFilter by remember { mutableStateOf("All") }
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(filters) { filter ->
-            val isSelected = selectedFilter == filter
-            FilterChip(
-                selected = isSelected,
-                onClick = { selectedFilter = filter },
-                label = { Text(filter) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Color(0xFF388E3C),
-                    selectedLabelColor = Color.White
-                )
-            )
+            FilterChip(selected = selectedFilter == filter, onClick = { selectedFilter = filter }, label = { Text(filter) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF388E3C), selectedLabelColor = Color.White))
         }
     }
 }
 
 @Composable
-fun TabButton(text: String, icon: ImageVector, isSelected: Boolean, activeColor: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        modifier = modifier,
-        shape = CircleShape,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) activeColor else Color.Transparent,
-            contentColor = if (isSelected) Color.White else Color.Gray
-        ),
-        elevation = if (isSelected) ButtonDefaults.buttonElevation(2.dp) else null
-    ) {
+fun TabButton(text: String, icon: Painter, isSelected: Boolean, activeColor: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Button(onClick = onClick, modifier = modifier.height(50.dp), shape = CircleShape, colors = ButtonDefaults.buttonColors(containerColor = if (isSelected) activeColor else Color.Transparent, contentColor = if (isSelected) Color.White else Color.Gray), elevation = if (isSelected) ButtonDefaults.buttonElevation(4.dp) else null) {
         Icon(icon, contentDescription = text, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(8.dp))
         Text(text)
@@ -349,18 +443,20 @@ fun TabButton(text: String, icon: ImageVector, isSelected: Boolean, activeColor:
 }
 
 @Composable
-fun PostActionButton(icon: ImageVector, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Icon(icon, contentDescription = text, tint = Color.Gray, modifier = Modifier.size(20.dp))
+fun PostActionButton(icon: Painter, text: String, onClick: (() -> Unit)? = null, tint: Color = Color.Unspecified) {
+    val modifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = modifier) {
+        Icon(icon, contentDescription = text, tint = tint, modifier = Modifier.size(20.dp))
         Text(text, color = Color.Gray, fontSize = 14.sp)
     }
 }
 
 @Composable
-fun MetaInfos(icon: ImageVector, text: String) {
+fun MetaInfos(icon: Painter, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.Gray)
         Spacer(modifier = Modifier.width(4.dp))
         Text(text, fontSize = 12.sp, color = Color.Gray)
     }
 }
+

@@ -9,6 +9,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,13 +22,19 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.example.richculture.Data.User
 import com.example.richculture.R
+import com.example.richculture.ViewModels.UserViewModel
+import com.example.richculture.navigate.Screen
+import com.example.richculture.utility.SessionManager
+import org.koin.androidx.compose.koinViewModel
 
 // --- New, Detailed Data Models for the Redesigned Screen ---
 
@@ -69,24 +78,20 @@ data class RecentOrder(
 )
 
 // --- Dummy Data ---
-
-val dummyProfile = UserProfile("Harshil", "HV", "Mumbai, Maharashtra", "Joined March 2024", "Cultural Explorer")
+// (We will replace this with live data)
 val dummyProgress = ProgressInfo(0.68f, 15, 8, 23)
-
 val dummyBadges = listOf(
     Badge(Icons.Default.Star, "Festival Enthusiast", "Attended 5 festivals", 100, Color(0xFFE0F2F1)),
-    Badge(Icons.Default.Person, "Monument Explorer", "Visited 10 heritage sites", 100, Color(0xFFE3F2FD)),
-    Badge(Icons.Default.AddCircle, "Craft Collector", "Purchased from 8 artisans", 100, Color(0xFFFCE4EC)),
-    Badge(Icons.Default.Build, "Story Teller", "Share 15 cultural stories", 73, Color(0xFFF3E5F5)),
-    Badge(Icons.Default.Refresh, "Heritage Guardian", "Complete all categories", 45, Color(0xFFFFF3E0))
+    Badge(Icons.Default.Place, "Monument Explorer", "Visited 10 heritage sites", 100, Color(0xFFE3F2FD)),
+    Badge(Icons.Default.ShoppingCart, "Craft Collector", "Purchased from 8 artisans", 100, Color(0xFFFCE4EC)),
+    Badge(Icons.Default.AddCircle, "Story Teller", "Share 15 cultural stories", 73, Color(0xFFF3E5F5)),
+    Badge(Icons.Default.AddCircle, "Heritage Guardian", "Complete all categories", 45, Color(0xFFFFF3E0))
 )
-
 val dummySavedItems = listOf(
     SavedItem(R.drawable.ic_tajmahal, "Taj Mahal AR Tour", "Monument", Color(0xFFF44336)),
     SavedItem(R.drawable.ic_arts_trad, "Bharatanatyam Dance", "Art Form", Color(0xFF9C27B0)),
     SavedItem(R.drawable.ic_blue_pottery, "Blue Pottery Craft", "Craft", Color(0xFF2196F3))
 )
-
 val dummyOrders = listOf(
     RecentOrder(R.drawable.ic_rajasthani_scarf, "Handwoven Banarasi Saree", "₹12,500", "2 days ago", "Delivered", Color(0xFF4CAF50)),
     RecentOrder(R.drawable.ic_rajasthani_scarf, "Traditional Kundan Necklace", "₹8,750", "5 days ago", "Shipped", Color(0xFFFFA000))
@@ -94,7 +99,15 @@ val dummyOrders = listOf(
 
 
 @Composable
-fun ProfileScreen(navController: NavHostController) {
+fun ProfileScreen(
+    navController: NavHostController,
+    userViewModel: UserViewModel = koinViewModel()
+) {
+    val currentUser by userViewModel.currentUser.collectAsState()
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -104,28 +117,40 @@ fun ProfileScreen(navController: NavHostController) {
                 )
             )
     ) {
-        // You can add a subtle background pattern image here if you have one
         Scaffold(
             topBar = { ProfileTopAppBar(navController) },
-            containerColor = Color.Transparent // Make scaffold transparent
+            containerColor = Color.Transparent
         ) { padding ->
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(
-                        top = padding.calculateTopPadding(), // ✅ only top padding from scaffold
+                        top = padding.calculateTopPadding(),
                         start = 10.dp,
                         end = 10.dp
                     ),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 80.dp) // ✅ manual bottom padding (space above bottom nav)
+                contentPadding = PaddingValues(bottom = 80.dp)
             ) {
-                item { UserInfoCard(profile = dummyProfile) }
+                item {
+                    currentUser?.let { user ->
+                        UserInfoCard(user = user)
+                    }
+                }
                 item { ProgressTrackerCard(progress = dummyProgress) }
                 item { AchievementsSection(badges = dummyBadges) }
                 item { SavedItemsSection(items = dummySavedItems) }
                 item { RecentOrdersSection(orders = dummyOrders) }
                 item { SettingsSection() }
+                // ✅ NEW: Account Actions section with Sign Out button
+                item {
+                    AccountActionsSection(
+                        onSignOut = {
+                            userViewModel.logout()
+                            sessionManager.navigateToAuth(navController)
+                        }
+                    )
+                }
             }
         }
     }
@@ -143,25 +168,21 @@ fun ProfileTopAppBar(navController: NavHostController) {
         },
         navigationIcon = {
             IconButton(onClick = { navController.popBackStack() }) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back" , tint = Color.Black)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back" , tint = Color.Black)
             }
         },
         actions = {
-            IconToggleButton(checked = false, onCheckedChange = {}) {
-                Icon(Icons.Default.Settings, contentDescription = "Settings" , tint = Color.Black)
-            }
-            IconToggleButton(checked = false, onCheckedChange = {}) {
-                Icon(Icons.Default.Share, contentDescription = "Share" , tint = Color.Black)
-            }
+            IconButton(onClick = {}) { Icon(Icons.Default.Settings, contentDescription = "Settings" , tint = Color.Black) }
+            IconButton(onClick = {}) { Icon(Icons.Default.Share, contentDescription = "Share" , tint = Color.Black) }
         },
-        windowInsets = WindowInsets(0), // 🚀 remove system insets
+        windowInsets = WindowInsets(0),
         modifier = Modifier.height(56.dp),
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
     )
 }
 
 @Composable
-fun UserInfoCard(profile: UserProfile) {
+fun UserInfoCard(user: User) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
         shape = RoundedCornerShape(20.dp),
@@ -173,6 +194,7 @@ fun UserInfoCard(profile: UserProfile) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box {
+                // TODO: Replace with AsyncImage for real profile pic
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -184,10 +206,10 @@ fun UserInfoCard(profile: UserProfile) {
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(profile.initials, color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                    Text(user.name.take(2).uppercase(), color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
                 }
                 Icon(
-                    Icons.Default.Call,
+                    Icons.Default.Edit,
                     contentDescription = "Edit Picture",
                     tint = Color.White,
                     modifier = Modifier
@@ -198,15 +220,15 @@ fun UserInfoCard(profile: UserProfile) {
                 )
             }
             Spacer(modifier = Modifier.height(12.dp))
-            Text(profile.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+            Text(user.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                InfoRow(icon = Icons.Default.LocationOn, text = profile.location)
-                InfoRow(icon = Icons.Default.Notifications, text = profile.joinDate)
+                InfoRow(icon = Icons.Default.LocationOn, text = "Mumbai, India") // Placeholder
+                InfoRow(icon = Icons.Default.AddCircle, text = "Joined ${user.createdAt.take(10)}")
             }
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "🔥 ${profile.level}",
+                text = "🔥 Cultural Explorer", // Placeholder
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
@@ -219,6 +241,26 @@ fun UserInfoCard(profile: UserProfile) {
         }
     }
 }
+
+// ✅ NEW: Section for Sign Out button
+@Composable
+fun AccountActionsSection(onSignOut: () -> Unit) {
+    Section(title = "Account Actions") {
+        OutlinedButton(
+            onClick = onSignOut,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.5f))
+        ) {
+            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Sign Out", tint = Color.Red)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Sign Out", color = Color.Red, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+
+// --- The rest of your ProfileScreen.kt composables remain the same ---
 
 @Composable
 fun ProgressTrackerCard(progress: ProgressInfo) {
@@ -311,7 +353,6 @@ fun SettingsSection() {
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Language", fontWeight = FontWeight.Bold)
-                // Simplified Language Grid
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     LanguageChip("English", true)
                     LanguageChip("हिन्दी", false)
@@ -320,20 +361,18 @@ fun SettingsSection() {
                 Divider(color = Color.Black.copy(alpha = 0.05f))
                 SettingRow(icon = Icons.Default.Notifications, title = "Notifications", subtitle = "Festival alerts & updates")
                 Divider(color = Color.Black.copy(alpha = 0.05f))
-                SettingRow(icon = Icons.Default.Person, title = "Privacy & Security", subtitle = "Manage your data preferences", showToggle = false)
+                SettingRow(icon = Icons.Default.Lock, title = "Privacy & Security", subtitle = "Manage your data preferences", showToggle = false)
             }
         }
     }
 }
 
 
-// --- Helper and Item Composables ---
-
 @Composable
 fun Section(
     title: String,
     modifier: Modifier = Modifier,
-    action: (@Composable () -> Unit)? = null, // ✅ CHANGED: Action is now nullable
+    action: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     Column(
@@ -346,7 +385,6 @@ fun Section(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            // ✅ We only display the action if it's provided (not null)
             if (action != null) {
                 action()
             }
@@ -440,7 +478,7 @@ fun SettingRow(icon: ImageVector, title: String, subtitle: String, showToggle: B
             var checked by remember { mutableStateOf(true) }
             Switch(checked = checked, onCheckedChange = { checked = it })
         } else {
-            Icon(Icons.Default.ArrowForward, contentDescription = "Navigate", modifier = Modifier.size(16.dp))
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Navigate", modifier = Modifier.size(16.dp))
         }
     }
 }

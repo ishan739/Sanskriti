@@ -40,6 +40,13 @@ android {
 }
 
 dependencies {
+//    Pull to refresh
+    implementation(libs.androidx.compose.material)
+
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.kotlinx.coroutines.android)
+
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
     implementation(libs.androidx.camera.core.v131)
     implementation(libs.androidx.camera.camera2.v131)
@@ -71,7 +78,6 @@ dependencies {
 
     // Navigation + DataStore
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.datastore.preferences)
 
     // Coil
@@ -93,6 +99,7 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.compose.runtime.livedata)
 
     // Testing
     testImplementation(libs.junit)
