@@ -39,9 +39,13 @@ export const uploadPost = async (req, res) => {
 
 export const getAllPosts = async (req, res) => {
     try {
-        const posts = await Post.find({})
-            .populate("author", "name location profileImage")
-            .populate("comments.author", "name  profileImage").sort({ createdAt: -1 })
+       const posts = await Post.find({})
+      .populate("author", "name location profileImage")
+      .populate({
+        path: "comments.author",
+        select: "name profileImage",
+      })
+      .sort({ createdAt: -1 });
         return res.status(200).json(posts)
     } catch (error) {
         return res.status(500).json({ message: `getallpost error ${error}` })
@@ -65,9 +69,11 @@ export const toggleLikePost = async (req, res) => {
         await post.save();
 
         const populatedPost = await Post.findById(postId)
-            .populate("author", "name profileImage")
-            .populate("comments.author", "name profileImage");
-
+  .populate("author", "name profileImage")
+  .populate({
+    path: "comments.author",
+    select: "name profileImage",
+  });
         return res.status(200).json(populatedPost);
     } catch (error) {
         return res.status(500).json({ message: `toggleLikePost error ${error}` });
@@ -87,8 +93,11 @@ export const addComment = async (req, res) => {
         await post.save();
 
         const populatedPost = await Post.findById(postId)
-            .populate("author", "name profileImage")
-            .populate("comments.author", "name profileImage");
+  .populate("author", "name profileImage")
+  .populate({
+    path: "comments.author",
+    select: "name profileImage",
+  });
 
         return res.status(201).json(populatedPost);
     } catch (error) {
@@ -116,8 +125,11 @@ export const deleteComment = async (req, res) => {
         await post.save();
 
         const populatedPost = await Post.findById(postId)
-            .populate("author", "name profileImage")
-            .populate("comments.author", "name profileImage");
+  .populate("author", "name profileImage")
+  .populate({
+    path: "comments.author",
+    select: "name profileImage",
+  });
 
         return res.status(200).json(populatedPost);
     } catch (error) {
