@@ -9,12 +9,12 @@ const uploadOnCloudinary = async (file) => {
       api_secret: process.env.CLOUDINARY_API_SECRET,
     });
 
-    // Detect file extension
+   
     const ext = file.split(".").pop().toLowerCase();
 
     let resourceType = "auto";
     if (["mp3", "wav", "m4a"].includes(ext)) {
-      resourceType = "video"; // Cloudinary uses "video" pipeline for audio files
+      resourceType = "video"; 
     }
 
     const result = await cloudinary.uploader.upload(file, {
