@@ -92,3 +92,32 @@ export const uploadFoodImage = async (req, res) => {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
+
+
+export const updateFood = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body; 
+
+    if (!updateData || Object.keys(updateData).length === 0) {
+      return res.status(400).json({ message: "No update data provided" });
+    }
+
+    const updatedFood = await food.findOneAndUpdate(
+      { id: Number(id) },
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedFood) {
+      return res.status(404).json({ message: "Food not found" });
+    }
+
+    res.status(200).json({
+      message: "Food updated successfully",
+      food: updatedFood,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};

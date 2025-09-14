@@ -21,7 +21,7 @@ const uploadOnCloudinary = async (file) => {
       resource_type: resourceType,
     });
 
-    // Remove local file after upload
+    
     fs.unlinkSync(file);
 
     return result.secure_url;

@@ -88,3 +88,31 @@ export const uploadFestivalImage = async (req, res) => {
 
 
 
+
+export const updateFestival = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body; 
+
+    if (!updateData || Object.keys(updateData).length === 0) {
+      return res.status(400).json({ message: "No update data provided" });
+    }
+
+    const updatedFestival = await Festival.findOneAndUpdate(
+      { festivalId: Number(id) },
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedFestival) {
+      return res.status(404).json({ message: "Festival not found" });
+    }
+
+    res.status(200).json({
+      message: "Festival updated successfully",
+      festival: updatedFestival,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};

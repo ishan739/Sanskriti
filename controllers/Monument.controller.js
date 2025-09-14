@@ -134,4 +134,37 @@ export const uploadThirdImage = async (req, res) => {
 };
 
 
+export const updateMonument = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updateData = req.body; 
+
+        
+        if (!updateData || Object.keys(updateData).length === 0) {
+            return res.status(400).json({ message: "No update data provided" });
+        }
+
+        const monument = await Monument.findOneAndUpdate(
+            { id: Number(id) },
+            { $set: updateData },
+            { new: true, runValidators: true }
+        );
+
+        if (!monument) {
+            return res.status(404).json({ message: "Monument not found" });
+        }
+
+        res.status(200).json({
+            message: "Monument updated successfully",
+            monument
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: "Server Error",
+            error: error.message
+        });
+    }
+};
+
+
 

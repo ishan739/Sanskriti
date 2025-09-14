@@ -1,6 +1,6 @@
 import multer from "multer";
 
-// Common storage config
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "./public");
@@ -10,7 +10,7 @@ const storage = multer.diskStorage({
   },
 });
 
-// Image upload middleware
+
 export const uploadImage = multer({
   storage,
   fileFilter: (req, file, cb) => {
