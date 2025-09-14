@@ -1,9 +1,15 @@
 package com.example.richculture.screens
 
+import android.content.Context
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -29,75 +35,46 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
 import com.example.richculture.Data.User
 import com.example.richculture.R
 import com.example.richculture.ViewModels.UserViewModel
 import com.example.richculture.navigate.Screen
 import com.example.richculture.utility.SessionManager
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.koin.androidx.compose.koinViewModel
 
-// --- New, Detailed Data Models for the Redesigned Screen ---
-
-data class UserProfile(
-    val name: String,
-    val initials: String,
-    val location: String,
-    val joinDate: String,
-    val level: String
-)
-
+// --- Data Models for UI (keeping dummy data for sections without APIs yet) ---
 data class ProgressInfo(
-    val levelProgress: Float,
-    val sitesVisited: Int,
-    val festivalsAttended: Int,
-    val craftsBought: Int
+    val levelProgress: Float, val sitesVisited: Int, val festivalsAttended: Int, val craftsBought: Int
 )
-
 data class Badge(
-    val icon: ImageVector,
-    val title: String,
-    val description: String,
-    val progress: Int, // 0-100
-    val color: Color
+    val icon: ImageVector, val title: String, val description: String, val progress: Int, val color: Color
 )
-
 data class SavedItem(
-    val imageResId: Int,
-    val title: String,
-    val category: String,
-    val categoryColor: Color
+    val imageResId: Int, val title: String, val category: String, val categoryColor: Color
 )
-
 data class RecentOrder(
-    val imageResId: Int,
-    val name: String,
-    val price: String,
-    val date: String,
-    val status: String,
-    val statusColor: Color
+    val imageResId: Int, val name: String, val price: String, val date: String, val status: String, val statusColor: Color
 )
 
-// --- Dummy Data ---
-// (We will replace this with live data)
 val dummyProgress = ProgressInfo(0.68f, 15, 8, 23)
 val dummyBadges = listOf(
     Badge(Icons.Default.Star, "Festival Enthusiast", "Attended 5 festivals", 100, Color(0xFFE0F2F1)),
-    Badge(Icons.Default.Place, "Monument Explorer", "Visited 10 heritage sites", 100, Color(0xFFE3F2FD)),
-    Badge(Icons.Default.ShoppingCart, "Craft Collector", "Purchased from 8 artisans", 100, Color(0xFFFCE4EC)),
-    Badge(Icons.Default.AddCircle, "Story Teller", "Share 15 cultural stories", 73, Color(0xFFF3E5F5)),
-    Badge(Icons.Default.AddCircle, "Heritage Guardian", "Complete all categories", 45, Color(0xFFFFF3E0))
+    Badge(Icons.Default.Place, "Monument Explorer", "Visited 10 heritage sites", 100, Color(0xFFE3F2FD))
 )
 val dummySavedItems = listOf(
-    SavedItem(R.drawable.ic_tajmahal, "Taj Mahal AR Tour", "Monument", Color(0xFFF44336)),
-    SavedItem(R.drawable.ic_arts_trad, "Bharatanatyam Dance", "Art Form", Color(0xFF9C27B0)),
-    SavedItem(R.drawable.ic_blue_pottery, "Blue Pottery Craft", "Craft", Color(0xFF2196F3))
+    SavedItem(R.drawable.ic_tajmahal, "Taj Mahal AR Tour", "Monument", Color(0xFFF44336))
 )
 val dummyOrders = listOf(
-    RecentOrder(R.drawable.ic_rajasthani_scarf, "Handwoven Banarasi Saree", "₹12,500", "2 days ago", "Delivered", Color(0xFF4CAF50)),
-    RecentOrder(R.drawable.ic_rajasthani_scarf, "Traditional Kundan Necklace", "₹8,750", "5 days ago", "Shipped", Color(0xFFFFA000))
+    RecentOrder(R.drawable.ic_rajasthani_scarf, "Handwoven Banarasi Saree", "₹12,500", "2 days ago", "Delivered", Color(0xFF4CAF50))
 )
 
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     navController: NavHostController,
@@ -106,43 +83,36 @@ fun ProfileScreen(
     val currentUser by userViewModel.currentUser.collectAsState()
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
+    val scope = rememberCoroutineScope()
+    val sheetState = rememberModalBottomSheetState()
+    var showEditSheet by remember { mutableStateOf(false) }
 
+    // Show a loading screen or message if the user data isn't available yet
+    if (currentUser == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color(0xFFFFFDE7), Color(0xFFFFF8E1))
-                )
-            )
+        modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color(0xFFFFFDE7), Color(0xFFFFF8E1))))
     ) {
         Scaffold(
             topBar = { ProfileTopAppBar(navController) },
             containerColor = Color.Transparent
         ) { padding ->
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(
-                        top = padding.calculateTopPadding(),
-                        start = 10.dp,
-                        end = 10.dp
-                    ),
+                modifier = Modifier.fillMaxSize().padding(top = padding.calculateTopPadding(), start = 10.dp, end = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(bottom = 80.dp)
             ) {
-                item {
-                    currentUser?.let { user ->
-                        UserInfoCard(user = user)
-                    }
-                }
+                item { UserInfoCard(user = currentUser!!, onEditClick = { showEditSheet = true }) }
                 item { ProgressTrackerCard(progress = dummyProgress) }
                 item { AchievementsSection(badges = dummyBadges) }
                 item { SavedItemsSection(items = dummySavedItems) }
                 item { RecentOrdersSection(orders = dummyOrders) }
                 item { SettingsSection() }
-                // ✅ NEW: Account Actions section with Sign Out button
                 item {
                     AccountActionsSection(
                         onSignOut = {
@@ -153,6 +123,153 @@ fun ProfileScreen(
                 }
             }
         }
+
+        // --- EDIT PROFILE BOTTOM SHEET ---
+        if (showEditSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showEditSheet = false },
+                sheetState = sheetState
+            ) {
+                EditProfileSheetContent(
+                    user = currentUser!!,
+                    onSaveChanges = { uri, name, bio, gender ->
+                        scope.launch {
+                            val token = sessionManager.getCurrentUserToken()
+                            if (token != null) {
+                                val imagePart = uri?.let { uriToMultipartBody(context, it, "profileImage") }
+                                val namePart = name.toRequestBody("text/plain".toMediaTypeOrNull())
+                                val bioPart = bio.toRequestBody("text/plain".toMediaTypeOrNull())
+                                val genderPart = gender.toRequestBody("text/plain".toMediaTypeOrNull())
+
+                                userViewModel.updateUserProfile(token, imagePart, namePart, bioPart, genderPart)
+                                Toast.makeText(context, "Profile updated!", Toast.LENGTH_SHORT).show()
+                                sheetState.hide()
+                            }
+                        }.invokeOnCompletion {
+                            // ✅ CRITICAL FIX: The correct way to check for cancellation
+                            if (it !is CancellationException) {
+                                showEditSheet = false
+                            }
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun UserInfoCard(user: User, onEditClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box {
+                AsyncImage(
+                    model = user.profileImage,
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier.size(80.dp).clip(CircleShape),
+                    contentScale = ContentScale.Crop,
+                    error = painterResource(id = R.drawable.ic_profile) // Fallback
+                )
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = "Edit Profile",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(28.dp)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape)
+                        .padding(6.dp)
+                        .clickable(onClick = onEditClick)
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(user.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+            Text(user.bio ?: "No bio yet.", color = Color.Gray, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                InfoRow(icon = Icons.Default.LocationOn, text = "Mumbai, India") // Placeholder
+                InfoRow(icon = Icons.Default.Star, text = "Joined ${user.createdAt.take(10)}")
+            }
+        }
+    }
+}
+
+
+@Composable
+fun EditProfileSheetContent(user: User, onSaveChanges: (Uri?, String, String, String) -> Unit) {
+    val context = LocalContext.current
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var name by remember { mutableStateOf(user.name) }
+    var bio by remember { mutableStateOf(user.bio ?: "") }
+    var gender by remember { mutableStateOf(user.gender ?: "Other") }
+    val isUpdating by koinViewModel<UserViewModel>().isUpdatingProfile.collectAsState()
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri: Uri? -> selectedImageUri = uri }
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .navigationBarsPadding(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Edit Your Profile", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Box(modifier = Modifier.clickable { galleryLauncher.launch("image/*") }) {
+            AsyncImage(
+                model = selectedImageUri ?: user.profileImage,
+                contentDescription = "Profile Picture",
+                modifier = Modifier.size(100.dp).clip(CircleShape),
+                contentScale = ContentScale.Crop,
+                error = painterResource(id = R.drawable.ic_profile)
+            )
+            Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.align(Alignment.Center), tint = Color.White)
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+
+        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(16.dp))
+        OutlinedTextField(value = bio, onValueChange = { bio = it }, label = { Text("Bio") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(16.dp))
+        OutlinedTextField(value = gender, onValueChange = { gender = it }, label = { Text("Gender") }, modifier = Modifier.fillMaxWidth())
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Button(
+            onClick = { onSaveChanges(selectedImageUri, name, bio, gender) },
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            enabled = !isUpdating
+        ) {
+            if (isUpdating) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+            } else {
+                Text("Save Changes")
+            }
+        }
+    }
+}
+
+private fun uriToMultipartBody(context: Context, uri: Uri, partName: String): MultipartBody.Part? {
+    return try {
+        val inputStream = context.contentResolver.openInputStream(uri) ?: return null
+        val fileBytes = inputStream.readBytes()
+        inputStream.close()
+        val requestFile = fileBytes.toRequestBody(context.contentResolver.getType(uri)?.toMediaTypeOrNull())
+        MultipartBody.Part.createFormData(partName, "image.jpg", requestFile)
+    } catch (e: Exception) {
+        null
     }
 }
 
@@ -182,68 +299,6 @@ fun ProfileTopAppBar(navController: NavHostController) {
 }
 
 @Composable
-fun UserInfoCard(user: User) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
-    ) {
-        Column(
-            modifier = Modifier.padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box {
-                // TODO: Replace with AsyncImage for real profile pic
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color(0xFFFF8A65), Color(0xFFF44336))
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(user.name.take(2).uppercase(), color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                }
-                Icon(
-                    Icons.Default.Edit,
-                    contentDescription = "Edit Picture",
-                    tint = Color.White,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .size(28.dp)
-                        .background(MaterialTheme.colorScheme.primary, CircleShape)
-                        .padding(6.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(user.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                InfoRow(icon = Icons.Default.LocationOn, text = "Mumbai, India") // Placeholder
-                InfoRow(icon = Icons.Default.AddCircle, text = "Joined ${user.createdAt.take(10)}")
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = "🔥 Cultural Explorer", // Placeholder
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .background(
-                        Brush.horizontalGradient(listOf(Color(0xFFFF7043), Color(0xFFF44336))),
-                        RoundedCornerShape(50)
-                    )
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-        }
-    }
-}
-
-// ✅ NEW: Section for Sign Out button
-@Composable
 fun AccountActionsSection(onSignOut: () -> Unit) {
     Section(title = "Account Actions") {
         OutlinedButton(
@@ -258,9 +313,6 @@ fun AccountActionsSection(onSignOut: () -> Unit) {
         }
     }
 }
-
-
-// --- The rest of your ProfileScreen.kt composables remain the same ---
 
 @Composable
 fun ProgressTrackerCard(progress: ProgressInfo) {
@@ -279,10 +331,7 @@ fun ProgressTrackerCard(progress: ProgressInfo) {
                     progress = { progress.levelProgress },
                     color = Color(0xFFFF5722),
                     trackColor = Color.Black.copy(alpha = 0.1f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(10.dp)
-                        .clip(RoundedCornerShape(50))
+                    modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(50))
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
@@ -366,7 +415,6 @@ fun SettingsSection() {
         }
     }
 }
-
 
 @Composable
 fun Section(
@@ -532,3 +580,4 @@ fun InfoRow(icon: ImageVector, text: String) {
         Text(text, fontSize = 12.sp, color = Color.Gray)
     }
 }
+

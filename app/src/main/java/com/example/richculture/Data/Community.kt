@@ -20,7 +20,7 @@ data class Author(
 
 data class Comment(
     val _id: String,
-    val text: String,
+    val message: String,
     val author: Author,
     val createdAt: String
 )

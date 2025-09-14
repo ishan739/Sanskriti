@@ -3,6 +3,7 @@ package com.example.richculture.screens
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,7 +13,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -103,7 +103,7 @@ fun HomeScreen(
         contentPadding = PaddingValues(bottom = 100.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item { MainTopAppBar(navController, userName = currentUser?.name) } // ✅ Pass user name
+        item { MainTopAppBar(navController, userName = currentUser?.name, profileImageUrl = currentUser?.profileImage) }
         item { SectionHeader("Quick Actions") }
         item { QuickActionsGrid(navController) }
         item { SectionHeader("Explore Heritage") }
@@ -132,7 +132,7 @@ fun HomeScreen(
 }
 
 @Composable
-fun MainTopAppBar(navController: NavController, userName: String?) {
+fun MainTopAppBar(navController: NavController, userName: String?, profileImageUrl: String?) {
     val context = LocalContext.current
 
     Card(
@@ -150,7 +150,7 @@ fun MainTopAppBar(navController: NavController, userName: String?) {
         ) {
             Column {
                 // ✅ Display personalized greeting
-                Text("Namaste ${userName ?: ""}!", style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                Text("Namaste ${userName ?: ""}", style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White))
                 Text("✨ Discover India's timeless heritage", fontSize = 14.sp, color = Color.White.copy(alpha = 0.9f))
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -166,10 +166,16 @@ fun MainTopAppBar(navController: NavController, userName: String?) {
                         navController.navigate(Screen.Auth.route)
                     }
                 }) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_profile),
+                    AsyncImage(
+                        model = profileImageUrl,
                         contentDescription = "Profile",
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .border(1.dp, Color.White.copy(alpha = 0.8f), CircleShape),
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(id = R.drawable.ic_profile), // Fallback if URL is null/invalid
+                        placeholder = painterResource(id = R.drawable.ic_profile) // Show while loading
                     )
                 }
             }
