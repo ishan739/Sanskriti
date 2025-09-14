@@ -81,29 +81,31 @@ export const toggleLikePost = async (req, res) => {
 }
 
 export const addComment = async (req, res) => {
-    try {
-        const { postId } = req.params;
-        const { message } = req.body;
-        const userId = req.userId;
+  try {
+    const { postId } = req.params;
+    const { message } = req.body;
+    const userId = req.userId;
 
-        const post = await Post.findById(postId);
-        if (!post) return res.status(404).json({ message: "Post not found" });
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ message: "Post not found" });
 
-        post.comments.push({ author: userId, message });
-        await post.save();
+    post.comments.push({ author: userId, message });
+    await post.save();
 
-        const populatedPost = await Post.findById(postId)
-  .populate("author", "name profileImage")
-  .populate({
-    path: "comments.author",
-    select: "name profileImage",
-  });
+    const populatedPost = await Post.findById(postId)
+      .populate("author", "name profileImage")
+      .populate({
+        path: "comments.author",
+        select: "name profileImage"
+      })
+      .select("caption media location author likes comments"); 
 
-        return res.status(201).json(populatedPost);
-    } catch (error) {
-        return res.status(500).json({ message: `addComment error ${error}` });
-    }
-}
+    return res.status(201).json(populatedPost);
+  } catch (error) {
+    return res.status(500).json({ message: `addComment error ${error}` });
+  }
+};
+
 
 
 export const deleteComment = async (req, res) => {
