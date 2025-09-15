@@ -76,8 +76,7 @@ export const toggleLikePost = async (req, res) => {
   .populate({
     path: "comments.author",
     select: "name profileImage",
-  })
-  .select("caption media location author likes comments");
+  });
         return res.status(200).json(populatedPost);
     } catch (error) {
         return res.status(500).json({ message: `toggleLikePost error ${error}` });
