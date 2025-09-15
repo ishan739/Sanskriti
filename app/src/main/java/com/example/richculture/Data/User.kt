@@ -1,27 +1,6 @@
 package com.example.richculture.Data
 
-// ✅ User Signup Request
-data class SignupRequest(
-    val name: String,
-    val email: String,
-    val password: String
-)
 
-// ✅ Login Request
-data class LoginRequest(
-    val email: String,
-    val password: String
-)
-
-// ✅ Login Response (structure is same as signup, so we reuse User)
-data class LoginResponse(
-    val message: String,
-    val token: String,
-    val user: User
-)
-
-
-// ✅ User object inside response
 data class User(
     val role: String,
     val _id: String,
@@ -39,23 +18,32 @@ data class User(
     val gender: String?
 )
 
-
-// for UPDATE profile API
-typealias ProfileResponse = User
-
 data class UpdateProfileResponse(
     val message: String,
     val user: User
 )
 
+// --- Request and Success Response Models ---
 
-// ✅ Signup Response
-data class SignupResponse(
-    val message: String,
-    val token: String,
-    val user: User,
-    val details : String
-)
+data class SignupRequest(val name: String, val email: String, val password: String)
+data class LoginRequest(val email: String, val password: String)
+data class LoginResponse(val message: String, val token: String, val user: User)
+data class SignupResponse(val message: String, val token: String, val user: User)
 
-// ✅ Post Upload Response
+// --- ✅ NEW: Password Reset Flow Models ---
+
+data class SendOtpRequest(val email: String)
+data class VerifyOtpRequest(val email: String, val otp: String)
+data class ResetPasswordRequest(val email: String, val newPassword: String)
+
+// A generic response for simple success messages from the API
+data class GenericAuthResponse(val message: String)
+
+
+// --- Error Response Models ---
+data class LoginErrorResponse(val message: String)
+data class SignupErrorResponse(val message: String, val details: List<String>?)
+
+
+
 
