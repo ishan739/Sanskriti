@@ -38,19 +38,22 @@ export const uploadPost = async (req, res) => {
 };
 
 export const getAllPosts = async (req, res) => {
-    try {
-       const posts = await Post.find({})
+  try {
+    const posts = await Post.find({})
       .populate("author", "name location profileImage")
       .populate({
         path: "comments.author",
         select: "name profileImage",
       })
+      .select("caption media location author likes comments") 
       .sort({ createdAt: -1 });
-        return res.status(200).json(posts)
-    } catch (error) {
-        return res.status(500).json({ message: `getallpost error ${error}` })
-    }
-}
+
+    return res.status(200).json(posts);
+  } catch (error) {
+    return res.status(500).json({ message: `getallpost error ${error}` });
+  }
+};
+
 
 export const toggleLikePost = async (req, res) => {
     try {
@@ -73,7 +76,8 @@ export const toggleLikePost = async (req, res) => {
   .populate({
     path: "comments.author",
     select: "name profileImage",
-  });
+  })
+  .select("caption media location author likes comments");
         return res.status(200).json(populatedPost);
     } catch (error) {
         return res.status(500).json({ message: `toggleLikePost error ${error}` });
@@ -93,12 +97,12 @@ export const addComment = async (req, res) => {
     await post.save();
 
     const populatedPost = await Post.findById(postId)
-      .populate("author", "name profileImage")
-      .populate({
-        path: "comments.author",
-        select: "name profileImage"
-      })
-      .select("caption media location author likes comments"); 
+  .populate("author", "name profileImage")
+  .populate({
+    path: "comments.author",
+    select: "name profileImage",
+  })
+  .select("caption media location author likes comments"); 
 
     return res.status(201).json(populatedPost);
   } catch (error) {
@@ -131,7 +135,8 @@ export const deleteComment = async (req, res) => {
   .populate({
     path: "comments.author",
     select: "name profileImage",
-  });
+  })
+  .select("caption media location author likes comments");
 
         return res.status(200).json(populatedPost);
     } catch (error) {
