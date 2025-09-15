@@ -1,19 +1,18 @@
-package com.example.richculture
+package com.example.richculture.utility
 
 import android.app.Application
+import com.example.richculture.appModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 
-// This class runs before any of your screens. It's the main power switch.
 class SanskritiApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // This line turns on the Koin "machine" and loads all your recipes.
         startKoin {
             androidContext(this@SanskritiApplication)
+            // ✅ CRITICAL FIX: Load your recipe book (appModule) into Koin
             modules(appModule)
         }
     }
 }
-

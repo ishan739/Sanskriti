@@ -31,6 +31,14 @@ fun NavigationGraph(
         composable(Screen.Onboarding.route) { OnboardingScreen(navController) }
         composable(Screen.Auth.route) { AuthScreen(navController) }
 
+        composable(
+            route = Screen.WebView.route + "/{url}",
+            arguments = listOf(navArgument("url") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val url = backStackEntry.arguments?.getString("url") ?: ""
+            WebViewScreen(navController = navController, url = url)
+        }
+
         // ✅ NEW: Destination for the Create Post Screen
         composable(Screen.CreatePost.route) { CreatePostScreen(navController) }
 

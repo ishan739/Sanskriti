@@ -58,7 +58,7 @@ dependencies {
 
 //    Koin
 
-    implementation(libs.koin.androidx.compose)
+        implementation(libs.koin.androidx.compose)
 
 //    Media Player
     implementation(libs.androidx.media3.exoplayer)

@@ -82,5 +82,7 @@ object RetrofitInstance {
 
     val travelPlannerApi: TravelPlannerApi by lazy { travelPlannerRetrofit.create(TravelPlannerApi::class.java) }
 
+    val scannerApi : ScannerApi by lazy { retrofit.create(ScannerApi::class.java) }
+
 
 }

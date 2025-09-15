@@ -36,5 +36,8 @@ sealed class Screen(
     // --- Startup Screens ---
     object Onboarding : Screen("onboarding", "Onboarding", -1)
     object Auth : Screen("auth", "Authentication", -1)
+
+    object WebView : Screen("webview", "WebView", -1)
+
 }
 

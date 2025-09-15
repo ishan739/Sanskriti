@@ -261,9 +261,12 @@ fun FeaturedStoryItem(story: Story, onStoryClick: (Story) -> Unit, onPlayClick: 
 @Composable
 fun StoryDetailDialog(story: Story, viewModel: StoryViewModel, onDismiss: () -> Unit) {
     val isPlaying by viewModel.isPlaying.collectAsState()
-    val currentlyPlayingStory by viewModel.currentlyPlayingStory.collectAsState()
+    val currentlyPlayingUrl by viewModel.currentlyPlayingStory.collectAsState() // This is now a String?
     val playbackPosition by viewModel.playbackPosition.collectAsState()
     val totalDuration by viewModel.totalDuration.collectAsState()
+
+    // Determine if the story in *this* dialog is the one currently playing.
+    val isThisStoryPlaying = isPlaying && currentlyPlayingUrl == story.audiourl
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) {
@@ -288,32 +291,24 @@ fun StoryDetailDialog(story: Story, viewModel: StoryViewModel, onDismiss: () -> 
                     }
                     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Slider(
-                            value = if (totalDuration > 0) playbackPosition.toFloat() else 0f,
+                            value = if (totalDuration > 0 && isThisStoryPlaying) playbackPosition.toFloat() else 0f,
                             onValueChange = { newPosition -> viewModel.seekTo(newPosition.toLong()) },
                             valueRange = 0f..(if (totalDuration > 0) totalDuration.toFloat() else 1f),
                             modifier = Modifier.fillMaxWidth()
                         )
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(formatDuration(playbackPosition), style = MaterialTheme.typography.labelSmall)
-                            Text(formatDuration(totalDuration), style = MaterialTheme.typography.labelSmall)
+                            Text(formatDuration(if (isThisStoryPlaying) playbackPosition else 0L), style = MaterialTheme.typography.labelSmall)
+                            Text(formatDuration(if (isThisStoryPlaying) totalDuration else 0L), style = MaterialTheme.typography.labelSmall)
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         IconButton(
                             onClick = { viewModel.playStory(story) },
                             modifier = Modifier.size(64.dp).background(MaterialTheme.colorScheme.primary, CircleShape)
                         ) {
-
+                            // ✅ CRITICAL FIX: The comparison is now between the story's audio URL and the currently playing URL string.
                             Icon(
-                                painter = if (isPlaying && currentlyPlayingStory?.id == story.id) {
-                                    painterResource(id = R.drawable.ic_pause)   // your pause image
-                                } else {
-                                    painterResource(id = R.drawable.ic_play)    // your play image
-                                },
-                                contentDescription = if (isPlaying && currentlyPlayingStory?.id == story.id) {
-                                    "Pause"
-                                } else {
-                                    "Play"
-                                },
+                                painter = if (isThisStoryPlaying) painterResource(id = R.drawable.ic_pause) else painterResource(id = R.drawable.ic_play),
+                                contentDescription = if (isThisStoryPlaying) "Pause" else "Play",
                                 tint = Color.White,
                                 modifier = Modifier.size(40.dp)
                             )
@@ -330,4 +325,3 @@ private fun formatDuration(millis: Long): String {
     val seconds = TimeUnit.MILLISECONDS.toSeconds(millis) % 60
     return String.format("%02d:%02d", minutes, seconds)
 }
-

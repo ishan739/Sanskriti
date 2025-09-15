@@ -207,7 +207,7 @@ fun SignInForm(
             .clickable(onClick = onForgotPasswordClick), fontSize = 14.sp)
         Spacer(modifier = Modifier.height(24.dp))
 
-        AnimatedVisibility(visible = apiError != null) { Text(text = "* ${apiError}" ?: "", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 8.dp), textAlign = TextAlign.Center) }
+        AnimatedVisibility(visible = apiError != null) { Text(text = "* $apiError" ?: "", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 8.dp), textAlign = TextAlign.Center) }
 
         OutlinedButton(
             onClick = { onSignIn(email, password) },
@@ -441,7 +441,7 @@ fun SignUpForm(
 
         // ✅ Display API error message
         AnimatedVisibility(visible = apiError != null) {
-            Text(text = "*${apiError}" ?: "", color = Color.Red, modifier = Modifier.padding(bottom = 8.dp), textAlign = TextAlign.Center)
+            Text(text = "* $apiError" ?: "", color = Color.Red, modifier = Modifier.padding(bottom = 8.dp), textAlign = TextAlign.Center)
         }
 
         Button(

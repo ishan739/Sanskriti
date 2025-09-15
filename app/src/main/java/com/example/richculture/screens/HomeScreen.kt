@@ -80,14 +80,15 @@ val exploreItems = listOf(
 fun HomeScreen(
     navController: NavController,
     storyViewModel: StoryViewModel = viewModel(),
-    userViewModel: UserViewModel = koinViewModel() // ✅ Inject UserViewModel
+    userViewModel: UserViewModel = koinViewModel()
 ) {
     val currentUser by userViewModel.currentUser.collectAsState()
-
     val storyOfTheDay by storyViewModel.storyOfTheDay.collectAsState()
     val isLoading by storyViewModel.isStoryOfTheDayLoading.collectAsState()
+
+    // ✅ Get audio state from the refactored ViewModel
     val isPlaying by storyViewModel.isPlaying.collectAsState()
-    val currentlyPlaying by storyViewModel.currentlyPlayingStory.collectAsState()
+    val currentlyPlayingUrl by storyViewModel.currentlyPlayingStory.collectAsState()
 
     var showStoryDialog by remember { mutableStateOf(false) }
     var selectedStory by remember { mutableStateOf<Story?>(null) }
@@ -118,7 +119,8 @@ fun HomeScreen(
                 storyOfTheDay?.let { story ->
                     StoryOfTheDayCard(
                         story = story,
-                        isPlaying = isPlaying && currentlyPlaying?.id == story.id,
+                        // ✅ CRITICAL FIX: Compare URLs, not IDs
+                        isPlaying = isPlaying && currentlyPlayingUrl == story.audiourl,
                         onListenClick = { storyViewModel.playStory(story) },
                         onClick = {
                             selectedStory = story
@@ -134,22 +136,17 @@ fun HomeScreen(
 @Composable
 fun MainTopAppBar(navController: NavController, userName: String?, profileImageUrl: String?) {
     val context = LocalContext.current
-
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = BottomArcShapeHome(arcHeight = 30.dp),
         elevation = CardDefaults.cardElevation(8.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(topBarBrush)
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 40.dp),
+            modifier = Modifier.fillMaxWidth().background(topBarBrush).padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 40.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                // ✅ Display personalized greeting
                 Text("Namaste ${userName ?: ""}", style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White))
                 Text("✨ Discover India's timeless heritage", fontSize = 14.sp, color = Color.White.copy(alpha = 0.9f))
             }
@@ -158,7 +155,6 @@ fun MainTopAppBar(navController: NavController, userName: String?, profileImageU
                     Icon(Icons.Outlined.Notifications, contentDescription = "Notifications", tint = Color.White.copy(alpha = 0.9f))
                 }
                 IconButton(onClick = {
-                    // ✅ Protect the profile route
                     if (userName != null) {
                         navController.navigate(Screen.Profile.route)
                     } else {
@@ -169,13 +165,10 @@ fun MainTopAppBar(navController: NavController, userName: String?, profileImageU
                     AsyncImage(
                         model = profileImageUrl,
                         contentDescription = "Profile",
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .border(1.dp, Color.White.copy(alpha = 0.8f), CircleShape),
+                        modifier = Modifier.size(36.dp).clip(CircleShape).border(1.dp, Color.White.copy(alpha = 0.8f), CircleShape),
                         contentScale = ContentScale.Crop,
-                        error = painterResource(id = R.drawable.ic_profile), // Fallback if URL is null/invalid
-                        placeholder = painterResource(id = R.drawable.ic_profile) // Show while loading
+                        error = painterResource(id = R.drawable.ic_profile),
+                        placeholder = painterResource(id = R.drawable.ic_profile)
                     )
                 }
             }
@@ -348,9 +341,12 @@ fun StoryOfTheDayCard(story: Story, isPlaying: Boolean, onClick: () -> Unit, onL
 @Composable
 fun StoryDetailDialogHome(story: Story, viewModel: StoryViewModel, onDismiss: () -> Unit) {
     val isPlaying by viewModel.isPlaying.collectAsState()
-    val currentlyPlayingStory by viewModel.currentlyPlayingStory.collectAsState()
+    val currentlyPlayingUrl by viewModel.currentlyPlayingStory.collectAsState()
     val playbackPosition by viewModel.playbackPosition.collectAsState()
     val totalDuration by viewModel.totalDuration.collectAsState()
+
+    // Determine if the story in *this* dialog is the one currently playing.
+    val isThisStoryPlaying = isPlaying && currentlyPlayingUrl == story.audiourl
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) {
@@ -371,16 +367,25 @@ fun StoryDetailDialogHome(story: Story, viewModel: StoryViewModel, onDismiss: ()
                         Text(story.story, style = MaterialTheme.typography.bodyMedium, color = Color.Gray, lineHeight = 22.sp)
                     }
                     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Slider(value = if (totalDuration > 0) playbackPosition.toFloat() else 0f, onValueChange = { newPosition -> viewModel.seekTo(newPosition.toLong()) }, valueRange = 0f..(if (totalDuration > 0) totalDuration.toFloat() else 1f), modifier = Modifier.fillMaxWidth())
+                        Slider(
+                            value = if (totalDuration > 0 && isThisStoryPlaying) playbackPosition.toFloat() else 0f,
+                            onValueChange = { newPosition -> viewModel.seekTo(newPosition.toLong()) },
+                            valueRange = 0f..(if (totalDuration > 0) totalDuration.toFloat() else 1f),
+                            modifier = Modifier.fillMaxWidth()
+                        )
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(formatDuration(playbackPosition), style = MaterialTheme.typography.labelSmall)
-                            Text(formatDuration(totalDuration), style = MaterialTheme.typography.labelSmall)
+                            Text(formatDuration(if (isThisStoryPlaying) playbackPosition else 0L), style = MaterialTheme.typography.labelSmall)
+                            Text(formatDuration(if (isThisStoryPlaying) totalDuration else 0L), style = MaterialTheme.typography.labelSmall)
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        IconButton(onClick = { viewModel.playStory(story) }, modifier = Modifier.size(64.dp).background(MaterialTheme.colorScheme.primary, CircleShape)) {
+                        IconButton(
+                            onClick = { viewModel.playStory(story) },
+                            modifier = Modifier.size(64.dp).background(MaterialTheme.colorScheme.primary, CircleShape)
+                        ) {
+                            // ✅ CRITICAL FIX: Compare URLs, not IDs
                             Icon(
-                                painter = if (isPlaying && currentlyPlayingStory?.id == story.id) painterResource(id = R.drawable.ic_pause) else painterResource(id = R.drawable.ic_play),
-                                contentDescription = if (isPlaying && currentlyPlayingStory?.id == story.id) "Pause" else "Play",
+                                painter = if (isThisStoryPlaying) painterResource(id = R.drawable.ic_pause) else painterResource(id = R.drawable.ic_play),
+                                contentDescription = if (isThisStoryPlaying) "Pause" else "Play",
                                 tint = Color.White,
                                 modifier = Modifier.size(40.dp)
                             )

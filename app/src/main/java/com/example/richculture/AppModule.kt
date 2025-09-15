@@ -2,6 +2,7 @@ package com.example.richculture
 
 import com.example.richculture.ViewModels.*
 import com.example.richculture.utility.PrefManager
+import com.example.richculture.utility.ScanHistoryManager
 import com.example.richculture.utility.SessionManager
 import com.example.richculture.utility.TokenManager
 import org.koin.android.ext.koin.androidContext
@@ -13,13 +14,15 @@ val appModule = module {
     single { PrefManager(androidContext()) }
     single { TokenManager(androidContext()) }
     single { SessionManager(androidContext()) }
+    single { ScanHistoryManager(androidContext()) }
 
     // ViewModels
     viewModel { MainViewModel(get()) }
     viewModel { UserViewModel(get()) }
     viewModel { CommunityViewModel() }
-
-    // ✅ NEW: ViewModel for the AI Trip Planner
     viewModel { TravelPlannerViewModel() }
+
+    // ✅ UPDATED: Teach Koin that ScannerViewModel now needs ScanHistoryManager.
+    viewModel { ScannerViewModel(get()) }
 }
 
