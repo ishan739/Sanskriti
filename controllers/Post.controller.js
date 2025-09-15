@@ -56,32 +56,36 @@ export const getAllPosts = async (req, res) => {
 
 
 export const toggleLikePost = async (req, res) => {
-    try {
-        const { postId } = req.params;
-        const userId = req.userId;
+  try {
+    const { postId } = req.params;
+    const userId = req.userId;
 
-        const post = await Post.findById(postId);
-        if (!post) return res.status(404).json({ message: "Post not found" });
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ message: "Post not found" });
 
-        const isLiked = post.likes.includes(userId);
-        if (isLiked) {
-            post.likes.pull(userId); 
-        } else {
-            post.likes.push(userId); 
-        }
-        await post.save();
+    const isLiked = post.likes.some(id => id.toString() === userId.toString());
 
-        const populatedPost = await Post.findById(postId)
-  .populate("author", "name profileImage")
-  .populate({
-    path: "comments.author",
-    select: "name profileImage",
-  });
-        return res.status(200).json(populatedPost);
-    } catch (error) {
-        return res.status(500).json({ message: `toggleLikePost error ${error}` });
+    if (isLiked) {
+      post.likes = post.likes.filter(id => id.toString() !== userId.toString());
+    } else {
+      post.likes.push(userId);
     }
-}
+
+    await post.save();
+
+    const populatedPost = await Post.findById(postId)
+      .populate("author", "name profileImage")
+      .populate({
+        path: "comments.author",
+        select: "name profileImage",
+      });
+
+    return res.status(200).json(populatedPost);
+  } catch (error) {
+    return res.status(500).json({ message: `toggleLikePost error ${error}` });
+  }
+};
+
 
 export const addComment = async (req, res) => {
   try {
