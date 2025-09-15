@@ -15,6 +15,9 @@ object RetrofitInstance {
     private const val VIVEKANANDA_URL = "https://vivekananda-ac4o.onrender.com/"
     private const val GANDHI_URL = "https://gandhi-hg9i.onrender.com/"
 
+    private const val TRAVEL_PLANNER_URL = "https://travel-planner-os5y.onrender.com/"
+
+
     // ✅ NEW: Create a logging interceptor to see network traffic in Logcat
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY // This logs headers and the request/response body
@@ -41,6 +44,8 @@ object RetrofitInstance {
     }
 
     // ----- Retrofit instances using the helper -----
+    private val travelPlannerRetrofit by lazy { createRetrofit(TRAVEL_PLANNER_URL) }
+
     private val retrofit by lazy { createRetrofit(BASE_URL) }
     private val chatRetrofit by lazy { createRetrofit(CHAT_BASE_URL) }
     private val bhagatRetrofit by lazy { createRetrofit(BHAGAT_URL) }
@@ -73,5 +78,8 @@ object RetrofitInstance {
     val communityApi: CommunityApi by lazy { retrofit.create(CommunityApi::class.java) }
 
     val userApi: UserApi by lazy { retrofit.create(UserApi::class.java) }
+
+    val travelPlannerApi: TravelPlannerApi by lazy { travelPlannerRetrofit.create(TravelPlannerApi::class.java) }
+
 
 }

@@ -53,7 +53,8 @@ data class UpdateProfileResponse(
 data class SignupResponse(
     val message: String,
     val token: String,
-    val user: User
+    val user: User,
+    val details : String
 )
 
 // ✅ Post Upload Response

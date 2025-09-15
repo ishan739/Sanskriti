@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.LiveData
+import com.example.richculture.Data.AddCommentRequest
 import com.example.richculture.Data.PostResponse
 import com.example.richculture.retro.RetrofitInstance
 import okhttp3.MultipartBody
@@ -23,13 +24,12 @@ class CommunityViewModel : ViewModel() {
     val error: LiveData<String?> get() = _error
 
 
-    // ✅ Get posts (sorted by createdAt DESC so latest first)
     fun getPosts() {
         viewModelScope.launch {
             try {
                 val response = RetrofitInstance.communityApi.getPosts()
                 if (response.isSuccessful) {
-                    val sortedPosts = response.body()?.sortedByDescending { it.createdAt }
+                    val sortedPosts = response.body()?.sortedByDescending { it.createdAt ?: "" }
                     _posts.postValue(sortedPosts ?: emptyList())
                 } else {
                     _error.postValue("Failed to load posts: ${response.message()}")
@@ -40,15 +40,11 @@ class CommunityViewModel : ViewModel() {
         }
     }
 
-    // ✅ Like/Unlike Post
     fun likePost(postId: String, token: String) {
         viewModelScope.launch {
             try {
                 val response = RetrofitInstance.communityApi.likePost(postId, "Bearer $token")
-                if (response.isSuccessful) {
-                    // Don't call getPosts() here to support optimistic UI.
-                    // The UI will handle the immediate change.
-                } else {
+                if (!response.isSuccessful) {
                     _error.postValue("Failed to like: ${response.message()}")
                 }
             } catch (e: Exception) {
@@ -57,12 +53,12 @@ class CommunityViewModel : ViewModel() {
         }
     }
 
-    // ✅ Add Comment
+    // ✅ UPDATED: The function now builds the correct request body
     fun addComment(postId: String, text: String, token: String) {
         viewModelScope.launch {
             try {
-                val body = mapOf("text" to text)
-                val response = RetrofitInstance.communityApi.addComment(postId, "Bearer $token", body)
+                val request = AddCommentRequest(message = text)
+                val response = RetrofitInstance.communityApi.addComment(postId, "Bearer $token", request)
                 if (!response.isSuccessful) {
                     _error.postValue("Failed to comment: ${response.message()}")
                 }
@@ -72,7 +68,6 @@ class CommunityViewModel : ViewModel() {
         }
     }
 
-    // ✅ Delete Comment
     fun deleteComment(postId: String, commentId: String, token: String) {
         viewModelScope.launch {
             try {
@@ -86,7 +81,6 @@ class CommunityViewModel : ViewModel() {
         }
     }
 
-    // ✅ NEW: Upload Post
     fun uploadPost(
         imagePart: MultipartBody.Part,
         caption: RequestBody,
@@ -98,7 +92,6 @@ class CommunityViewModel : ViewModel() {
                 val response = RetrofitInstance.communityApi.uploadPost(imagePart, caption, location, "Bearer $token")
                 if (response.isSuccessful) {
                     _uploadResponse.postValue(response.body())
-                    // Refresh the post list after a successful upload
                     getPosts()
                 } else {
                     _error.postValue("Upload failed: ${response.message()}")
@@ -109,3 +102,4 @@ class CommunityViewModel : ViewModel() {
         }
     }
 }
+

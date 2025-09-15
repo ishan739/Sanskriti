@@ -1,8 +1,5 @@
-import com.example.richculture.Data.LoginRequest
-import com.example.richculture.Data.LoginResponse
+import com.example.richculture.Data.AddCommentRequest
 import com.example.richculture.Data.PostResponse
-import com.example.richculture.Data.SignupRequest
-import com.example.richculture.Data.SignupResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
@@ -31,12 +28,12 @@ interface CommunityApi {
         @Header("Authorization") token: String
     ): Response<PostResponse>
 
-    // ✅ Add comment
+    // ✅ Add comment (NOW USES THE CORRECT DATA CLASS)
     @POST("post/{postId}/comment")
     suspend fun addComment(
         @Path("postId") postId: String,
         @Header("Authorization") token: String,
-        @Body comment: Map<String, String>
+        @Body comment: AddCommentRequest
     ): Response<PostResponse>
 
     // ✅ Delete comment
