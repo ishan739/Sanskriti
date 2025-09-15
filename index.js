@@ -21,6 +21,7 @@ import musicrouter from "./routes/music.route.js"
 import calenderrouter from "./routes/calender.route.js"
 import userrouter from "./routes/user.route.js"
 import postRouter from "./routes/post.route.js"
+import predictrouter from "./routes/predict.route.js"
 
 
 
@@ -66,6 +67,7 @@ app.use("/api/music", musicrouter)
 app.use("/api/cal", calenderrouter)
 app.use("/api/user", userrouter)
 app.use("/api/post", postRouter)
+app.use("/api/predict", predictrouter)
 
 
 
