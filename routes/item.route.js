@@ -1,7 +1,7 @@
 import express from "express";
-import { uploadImage } from "../middlewares/multer";
-import { addItem, getAllItems, getItemById, getItemsByCategory, removeItem, searchItems, updateItem } from "../controllers/item.controller";
-import { isAuth } from "../middlewares/authMiddleware";
+import { uploadImage } from "../middlewares/multer.js";
+import { addItem, getAllItems, getItemById, getItemsByCategory, removeItem, searchItems, updateItem } from "../controllers/item.controller.js";
+import { isAuth } from "../middlewares/authMiddleware.js";
 
 
 const itemrouter = express.Router();

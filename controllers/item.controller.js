@@ -13,9 +13,9 @@ export const addItem = async (req, res) => {
 
     let imageUrl = "";
     if (req.file) {
-      const uploadedImage = await uploadOnCloudinary(req.file.path);
-      imageUrl = uploadedImage?.secure_url || "";
-    }
+  const uploadedImage = await uploadOnCloudinary(req.file.path);
+  imageUrl = uploadedImage || "";
+}
 
     const newItem = await Item.create({
       name,
@@ -105,9 +105,10 @@ export const updateItem = async (req, res) => {
     const updates = req.body;
 
     if (req.file) {
-      const uploadedImage = await uploadOnCloudinary(req.file.path);
-      updates.imageUrl = uploadedImage?.secure_url || "";
-    }
+  const uploadedImage = await uploadOnCloudinary(req.file.path);
+  updates.imageUrl = uploadedImage || "";
+}
+
 
     const updatedItem = await Item.findByIdAndUpdate(id, updates, { new: true });
 

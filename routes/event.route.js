@@ -1,10 +1,11 @@
 import express from "express";
-import { eventFinder } from "../controllers/event.controller.js";
+import getEventsController from "../controllers/event.controller.js";
+
 
 const eventrouter = express.Router();
 
 
+eventrouter.post('/', getEventsController);
 
-eventrouter.post("/",eventFinder);
 
 export default eventrouter;
