@@ -38,8 +38,7 @@ class StoryViewModel(application: Application) : AndroidViewModel(application) {
     val storyOfTheDay = _storyOfTheDay.asStateFlow()
     val isStoryOfTheDayLoading = MutableStateFlow(true)
 
-    // --- ✅ DELEGATED AUDIO STATE ---
-    // The ViewModel now gets its state directly from the singleton AudioPlayerManager.
+    // --- Delegated Audio State ---
     val currentlyPlayingStory = AudioPlayerManager.currentPlayingUrl
     val isPlaying = AudioPlayerManager.isPlaying
     val playbackPosition = AudioPlayerManager.playbackPosition
@@ -50,27 +49,85 @@ class StoryViewModel(application: Application) : AndroidViewModel(application) {
         loadStoryOfTheDay()
     }
 
-    fun loadStoryOfTheDay() { /* ... no changes ... */ }
-    private fun fetchAllStories() { /* ... no changes ... */ }
-    private fun processCategories(stories: List<Story>) { /* ... no changes ... */ }
-    fun selectCategory(categoryName: String?) { /* ... no changes ... */ }
+    // ✅ RE-IMPLEMENTED: Logic to fetch and handle the Story of the Day
+    fun loadStoryOfTheDay() {
+        viewModelScope.launch {
+            isStoryOfTheDayLoading.value = true
+            try {
+                val savedStoryId = prefManager.getStoryOfTheDayId()
+                if (savedStoryId != null) {
+                    // If a recent story is saved, fetch it directly
+                    _storyOfTheDay.value = RetrofitInstance.storyApi.getStoryById(savedStoryId)
+                } else {
+                    // Otherwise, fetch all stories to pick a new random one
+                    val all = RetrofitInstance.storyApi.getStories()
+                    if (all.isNotEmpty()) {
+                        val randomStory = all.random()
+                        _storyOfTheDay.value = randomStory
+                        // Save the new story and timestamp
+                        prefManager.saveStoryOfTheDay(randomStory)
+                    }
+                }
+            } catch (e: Exception) {
+                error.value = "Could not load highlight."
+            } finally {
+                isStoryOfTheDayLoading.value = false
+            }
+        }
+    }
 
-    // --- ✅ SIMPLIFIED PLAYER CONTROLS ---
+    // ✅ RE-IMPLEMENTED: Logic to fetch all stories from the API
+    private fun fetchAllStories() {
+        isLoading.value = true
+        viewModelScope.launch {
+            try {
+                val storyList = RetrofitInstance.storyApi.getStories()
+                _allStories.value = storyList
+                _displayedStories.value = storyList // Initially display all
+                processCategories(storyList)
+                error.value = null
+            } catch (e: Exception) {
+                error.value = "Failed to load stories. Please check your connection."
+            } finally {
+                isLoading.value = false
+            }
+        }
+    }
+
+    // ✅ RE-IMPLEMENTED: Logic to group stories by category
+    private fun processCategories(stories: List<Story>) {
+        _categories.value = stories.groupBy { it.category }
+            .map { (categoryName, storiesInCategory) ->
+                StoryCategoryInfo(
+                    name = categoryName,
+                    storyCount = storiesInCategory.size,
+                    firstThumbnailUrl = storiesInCategory.firstOrNull()?.thumbnail ?: ""
+                )
+            }
+    }
+
+    // ✅ RE-IMPLEMENTED: Logic to filter the displayed stories
+    fun selectCategory(categoryName: String?) {
+        _selectedCategory.value = categoryName
+        _displayedStories.value = if (categoryName == null) {
+            _allStories.value // Show all stories
+        } else {
+            _allStories.value.filter { it.category == categoryName } // Show filtered stories
+        }
+    }
 
     fun playStory(story: Story) {
         val context = getApplication<Application>().applicationContext
-        // The logic is now a simple call to the manager.
         AudioPlayerManager.playOrPause(context, story.audiourl)
     }
 
     fun seekTo(position: Long) {
-        // Delegate seeking to the manager.
         AudioPlayerManager.seekTo(position)
     }
 
-    // It's crucial to release the player when the ViewModel is cleared.
     override fun onCleared() {
         super.onCleared()
         AudioPlayerManager.releasePlayer()
     }
 }
+

@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -65,7 +66,6 @@ fun StoriesScreen(
     navController: NavController,
     viewModel: StoryViewModel = viewModel()
 ) {
-    val context = LocalContext.current
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val categories by viewModel.categories.collectAsState()
@@ -77,17 +77,19 @@ fun StoriesScreen(
         topBar = { StoriesTopAppBar(navController) },
         containerColor = Color(0xFFF8F9FA)
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             if (isLoading && categories.isEmpty()) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (error != null) {
                 Text(text = error!!, modifier = Modifier.align(Alignment.Center).padding(16.dp), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error)
             } else {
+                // ✅ REFACTORED: The LazyColumn now handles the list of stories directly.
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(top = padding.calculateTopPadding() + 16.dp, bottom = 100.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    // Category Section
                     item {
                         Sectione(title = "Story Categories") {
                             CategoryGrid(
@@ -97,24 +99,35 @@ fun StoriesScreen(
                             )
                         }
                     }
+
+                    // Spacer between sections
+                    item { Spacer(modifier = Modifier.height(8.dp)) }
+
+                    // Stories Section Header
                     item {
                         val sectionTitle = selectedCategoryName?.let { "$it Stories" } ?: "All Stories"
-                        Sectione(
-                            title = sectionTitle,
-                            action = {
-                                if (selectedCategoryName != null) {
-                                    TextButton(onClick = { viewModel.selectCategory(null) }) {
-                                        Text("View All")
-                                    }
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(sectionTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            if (selectedCategoryName != null) {
+                                TextButton(onClick = { viewModel.selectCategory(null) }) {
+                                    Text("View All")
                                 }
                             }
-                        ) {
-                            FeaturedStoriesList(
-                                stories = displayedStories,
-                                onStoryClick = { story -> selectedStory = story },
-                                onPlayClick = { story -> viewModel.playStory(story) }
-                            )
                         }
+                    }
+
+                    // ✅ CRITICAL FIX: Use items() to lazily render the list of stories.
+                    items(displayedStories, key = { it.id }) { story ->
+                        FeaturedStoryItem(
+                            story = story,
+                            onStoryClick = { selectedStory = story },
+                            onPlayClick = { viewModel.playStory(story) },
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
                     }
                 }
             }
@@ -127,6 +140,9 @@ fun StoriesScreen(
         }
     }
 }
+
+
+// --- All other composables below this line are correct and do not need changes ---
 
 @Composable
 fun StoriesTopAppBar(navController: NavController) {
@@ -218,20 +234,10 @@ fun CategoryCard(
     }
 }
 
-
 @Composable
-fun FeaturedStoriesList(stories: List<Story>, onStoryClick: (Story) -> Unit, onPlayClick: (Story) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        stories.forEach { story ->
-            FeaturedStoryItem(story = story, onStoryClick = onStoryClick, onPlayClick = onPlayClick)
-        }
-    }
-}
-
-@Composable
-fun FeaturedStoryItem(story: Story, onStoryClick: (Story) -> Unit, onPlayClick: (Story) -> Unit) {
+fun FeaturedStoryItem(story: Story, onStoryClick: (Story) -> Unit, onPlayClick: (Story) -> Unit, modifier: Modifier = Modifier) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable { onStoryClick(story) },
+        modifier = modifier.fillMaxWidth().clickable { onStoryClick(story) },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(2.dp)
@@ -261,11 +267,9 @@ fun FeaturedStoryItem(story: Story, onStoryClick: (Story) -> Unit, onPlayClick: 
 @Composable
 fun StoryDetailDialog(story: Story, viewModel: StoryViewModel, onDismiss: () -> Unit) {
     val isPlaying by viewModel.isPlaying.collectAsState()
-    val currentlyPlayingUrl by viewModel.currentlyPlayingStory.collectAsState() // This is now a String?
+    val currentlyPlayingUrl by viewModel.currentlyPlayingStory.collectAsState()
     val playbackPosition by viewModel.playbackPosition.collectAsState()
     val totalDuration by viewModel.totalDuration.collectAsState()
-
-    // Determine if the story in *this* dialog is the one currently playing.
     val isThisStoryPlaying = isPlaying && currentlyPlayingUrl == story.audiourl
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -305,7 +309,6 @@ fun StoryDetailDialog(story: Story, viewModel: StoryViewModel, onDismiss: () -> 
                             onClick = { viewModel.playStory(story) },
                             modifier = Modifier.size(64.dp).background(MaterialTheme.colorScheme.primary, CircleShape)
                         ) {
-                            // ✅ CRITICAL FIX: The comparison is now between the story's audio URL and the currently playing URL string.
                             Icon(
                                 painter = if (isThisStoryPlaying) painterResource(id = R.drawable.ic_pause) else painterResource(id = R.drawable.ic_play),
                                 contentDescription = if (isThisStoryPlaying) "Pause" else "Play",
@@ -325,3 +328,4 @@ private fun formatDuration(millis: Long): String {
     val seconds = TimeUnit.MILLISECONDS.toSeconds(millis) % 60
     return String.format("%02d:%02d", minutes, seconds)
 }
+
