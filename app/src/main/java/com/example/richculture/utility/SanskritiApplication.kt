@@ -1,7 +1,7 @@
 package com.example.richculture.utility
 
 import android.app.Application
-import com.example.richculture.appModule
+import com.example.richculture.di.appModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 

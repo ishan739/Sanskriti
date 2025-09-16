@@ -8,10 +8,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,20 +21,22 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.richculture.Data.freedomFighters
-import com.example.richculture.ViewModels.UniversalChatViewModel
+import com.example.richculture.Data.leaders
+import com.example.richculture.ViewModels.AzadiChatViewModel
+import com.example.richculture.screens.composables.ChatBubble
+import com.example.richculture.screens.composables.ChatMessage
+import com.example.richculture.screens.composables.MessageInputField
 import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun ChatInterfaceScreen(
     navController: NavController,
     leaderId: String,
-    viewModel: UniversalChatViewModel = viewModel()
+    viewModel: AzadiChatViewModel = koinViewModel()
 ) {
-    // Find the leader's data using the ID passed through navigation
-    val leader = remember { freedomFighters.find { it.id == leaderId } } ?: return
+    val leader = remember { leaders.find { it.id == leaderId } } ?: return
 
     val chatResponse by viewModel.chatResponse.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -44,24 +44,22 @@ fun ChatInterfaceScreen(
     val listState = rememberLazyListState()
 
     val conversationHistory = remember { mutableStateListOf<ChatMessage>() }
+    // ✅ NEW: Hoisted state for the text input field
+    var text by remember { mutableStateOf("") }
 
-    // This effect runs when a new chatResponse arrives from the ViewModel
     LaunchedEffect(chatResponse) {
         chatResponse?.let { responseMessage ->
             conversationHistory.add(ChatMessage(responseMessage, isUser = false))
-            viewModel.clearResponse() // Clear the response so it's not added again
-            // Auto-scroll to the new message
+            viewModel.clearResponse()
             coroutineScope.launch {
                 listState.animateScrollToItem(conversationHistory.size - 1)
             }
         }
     }
 
-    // This effect runs once when the screen is first displayed
     LaunchedEffect(Unit) {
         viewModel.resetChatState()
         conversationHistory.clear()
-        // Add a welcoming message from the leader
         conversationHistory.add(ChatMessage("Greetings! How may I share my story with you today?", isUser = false))
     }
 
@@ -79,7 +77,7 @@ fun ChatInterfaceScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .imePadding() // Automatically handles keyboard overlap
+                .imePadding()
         ) {
             LazyColumn(
                 state = listState,
@@ -98,22 +96,37 @@ fun ChatInterfaceScreen(
                 }
                 if (isLoading) {
                     item {
-                        // You can add a typing indicator here if you want
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
                     }
                 }
             }
+            // ✅ CRITICAL FIX: The call to MessageInputField is now correct
             MessageInputField(
-                onSendClick = { text ->
+                text = text,
+                onTextChange = { newText -> text = newText },
+                onSendClick = {
                     if (text.isNotBlank()) {
                         conversationHistory.add(ChatMessage(text, isUser = true))
-                        // Use the leader's ID as the target for the API call
-                        viewModel.sendMessage(text, target = leader.id)
+                        viewModel.sendMessage(text, leaderName = leader.name)
+                        text = "" // Clear the text after sending
                         coroutineScope.launch {
                             listState.animateScrollToItem(conversationHistory.size)
                         }
                     }
                 },
-                accentColor = leader.primaryColor
+                textFieldColors = TextFieldDefaults.colors(
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
+                    cursorColor = leader.primaryColor,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                buttonBrush = leader.gradient
             )
         }
     }
@@ -152,71 +165,5 @@ fun ChatInterfaceHeader(
             titleContentColor = Color.Black
         )
     )
-}
-
-@Composable
-fun ChatBubble(message: String, isUser: Boolean, userColor: Color) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
-    ) {
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = if (isUser) userColor else Color.White
-            )
-        ) {
-            Text(
-                text = message,
-                modifier = Modifier.padding(12.dp),
-                color = if (isUser) Color.White else Color.Black
-            )
-        }
-    }
-}
-
-@Composable
-fun MessageInputField(onSendClick: (String) -> Unit, accentColor: Color) {
-    var text by remember { mutableStateOf("") }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        shape = RoundedCornerShape(32.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TextField(
-                value = text,
-                onValueChange = { text = it },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Ask a question...") },
-                colors = TextFieldDefaults.colors(
-                    focusedTextColor = Color.Black,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    cursorColor = accentColor,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent
-                )
-            )
-            IconButton(
-                onClick = {
-                    onSendClick(text)
-                    text = ""
-                },
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(accentColor, CircleShape)
-            ) {
-                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.White)
-            }
-        }
-    }
 }
 

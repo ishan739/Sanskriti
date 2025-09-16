@@ -1,4 +1,4 @@
-package com.example.richculture
+package com.example.richculture.di
 
 import com.example.richculture.ViewModels.*
 import com.example.richculture.utility.PrefManager
@@ -21,8 +21,11 @@ val appModule = module {
     viewModel { UserViewModel(get()) }
     viewModel { CommunityViewModel() }
     viewModel { TravelPlannerViewModel() }
-
-    // ✅ UPDATED: Teach Koin that ScannerViewModel now needs ScanHistoryManager.
     viewModel { ScannerViewModel(get()) }
+    viewModel { StoryViewModel(get()) }
+
+    // ✅ CRITICAL FIX: Added the missing recipes for both chat ViewModels
+    viewModel { AzadiChatViewModel() }
+    viewModel { ChatbotViewModel() }
 }
 

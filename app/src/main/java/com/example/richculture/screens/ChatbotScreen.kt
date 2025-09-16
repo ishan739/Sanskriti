@@ -1,6 +1,5 @@
 package com.example.richculture.screens
 
-
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,7 +11,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -25,43 +23,39 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.richculture.ViewModels.UniversalChatViewModel
+import com.example.richculture.ViewModels.ChatbotViewModel
+import com.example.richculture.screens.composables.ChatBubble
+import com.example.richculture.screens.composables.ChatMessage
+import com.example.richculture.screens.composables.MessageInputField
 import kotlinx.coroutines.launch
-
-// Data class to represent a single chat message for better state management
-data class ChatMessage(val text: String, val isUser: Boolean)
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun ChatbotScreen(
     navController: NavController,
-    viewModel: UniversalChatViewModel = viewModel()
+    viewModel: ChatbotViewModel = koinViewModel()
 ) {
-    // State from ViewModel
     val chatResponse by viewModel.chatResponse.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
 
-    // UI State
+    // ✅ State for the text input is now managed here (hoisted)
     var text by remember { mutableStateOf("") }
     val conversationHistory = remember { mutableStateListOf<ChatMessage>() }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    // --- IMPROVEMENT: Handle new responses and add them to the conversation history ---
     LaunchedEffect(chatResponse) {
         chatResponse?.let { response ->
             conversationHistory.add(ChatMessage(response, isUser = false))
-            viewModel.clearResponse() // Clear response to prevent re-adding on recompose
-            // Auto-scroll to the new message
+            viewModel.clearResponse()
             coroutineScope.launch {
                 listState.animateScrollToItem(conversationHistory.lastIndex)
             }
         }
     }
 
-    // --- IMPROVEMENT: Reset chat state when the screen is first entered ---
     LaunchedEffect(Unit) {
         viewModel.resetChatState()
         conversationHistory.clear()
@@ -73,6 +67,9 @@ fun ChatbotScreen(
         "Traditional food of Rajasthan"
     )
 
+    val userBubbleColor = Color(0xFF6A1B9A)
+    val buttonBrush = Brush.linearGradient(colors = listOf(Color(0xFF8E2DE2), Color(0xFF4A00E0)))
+
     Scaffold(
         topBar = { ChatbotHeader(navController) }
     ) { innerPadding ->
@@ -80,15 +77,8 @@ fun ChatbotScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                // --- UI POLISH: A subtle gradient background is more visually appealing ---
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color(0xFFF4F6FC), Color(0xFFE9EBFA))
-                    )
-                )
-                // --- FIX 1: This prevents the input field from overlapping the system navigation bar ---
+                .background(Brush.verticalGradient(colors = listOf(Color(0xFFF4F6FC), Color(0xFFE9EBFA))))
                 .navigationBarsPadding()
-                // --- FIX 2: This makes the UI adjust when the keyboard opens/closes ---
                 .imePadding()
         ) {
             LazyColumn(
@@ -98,65 +88,75 @@ fun ChatbotScreen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // The welcome card now only shows if the conversation is empty
                 if (conversationHistory.isEmpty()) {
                     item {
                         Spacer(modifier = Modifier.height(16.dp))
                         AssistantWelcomeCard(
                             quickQuestions = quickQuestions,
                             onQuestionClick = { question ->
-                                text = question // Correctly places question in the text field
+                                // ✅ This now works correctly
+                                text = question
                             }
                         )
                     }
                 }
 
-                // --- IMPROVEMENT: Display the entire conversation history ---
                 items(conversationHistory) { message ->
-                    ChatBubble(isUser = message.isUser, message = message.text)
+                    ChatBubble(
+                        isUser = message.isUser,
+                        message = message.text,
+                        userColor = userBubbleColor
+                    )
                 }
 
-                // Display a typing indicator when loading
                 if (isLoading) {
                     item {
-                        ChatBubble(isUser = false, message = "Typing...")
+                        ChatBubble(isUser = false, message = "Typing...", userColor = userBubbleColor)
                     }
                 }
 
-                // Display any errors inline
                 error?.let { err ->
                     item {
-                        Text(
-                            text = "Error: $err",
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
+                        Text(text = "Error: $err", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(vertical = 8.dp))
                     }
                 }
             }
 
-            // Input Field
             MessageInputField(
+                // ✅ Pass the hoisted state to the input field
                 text = text,
-                onTextChange = { text = it },
+                onTextChange = { newText -> text = newText },
                 onSendClick = {
                     if (text.isNotBlank()) {
-                        // Immediately add user message to history for a responsive feel
                         conversationHistory.add(ChatMessage(text, isUser = true))
                         viewModel.sendMessage(text, "unique_conversation_id_123")
-                        text = ""
-                        // Auto-scroll when the user sends a message
+                        text = "" // Clear the text after sending
                         coroutineScope.launch {
                             listState.animateScrollToItem(conversationHistory.lastIndex)
                         }
                     }
-                }
+                },
+                buttonBrush = buttonBrush,
+                cardColors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.5f)),
+                cardElevation = CardDefaults.cardElevation(0.dp),
+                cardBorder = BorderStroke(1.dp, Color.White.copy(alpha = 0.7f)),
+                textFieldColors = TextFieldDefaults.colors(
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
+                    cursorColor = Color(0xFF8E2DE2),
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                placeholderText = "Ask about monuments, festivals..."
             )
         }
     }
 }
 
-// --- NO CHANGES NEEDED FOR ChatbotHeader OR OTHER COMPOSABLES IN THIS FILE ---
+// --- ✅ ALL MISSING COMPOSABLES ARE NOW INCLUDED ---
 
 @Composable
 fun ChatbotHeader(navController: NavController) {
@@ -166,6 +166,7 @@ fun ChatbotHeader(navController: NavController) {
             .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
             .background(Brush.linearGradient(colors = listOf(Color(0xFF8E2DE2), Color(0xFF4A00E0))))
             .padding(horizontal = 16.dp, vertical = 12.dp)
+            .statusBarsPadding()
     ) {
         Column {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -219,124 +220,26 @@ fun AssistantWelcomeCard(
 
 @Composable
 fun QuickQuestionItem(questionText: String, onClick: (String) -> Unit) {
-    Row(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.White)
-            .clickable { onClick(questionText) }
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clickable { onClick(questionText) },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, Color.Gray.copy(alpha = 0.2f))
     ) {
-        Icon(
-            Icons.Default.Search,
-            contentDescription = "Ask",
-            tint = Color(0xFF8E2DE2),
-            modifier = Modifier.size(18.dp)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(questionText, color = Color.DarkGray)
-    }
-}
-
-
-@Composable
-fun MessageInputField(
-    text: String,
-    onTextChange: (String) -> Unit,
-    onSendClick: () -> Unit
-) {
-    // --- UI POLISH: Enhanced Glassmorphic effect with a subtle border ---
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, bottom = 12.dp, top = 8.dp)
-    ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(32.dp),
-            elevation = CardDefaults.cardElevation(0.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.White.copy(alpha = 0.5f) // Slightly less transparent
-            ),
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.7f))
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextField(
-                    value = text,
-                    onValueChange = onTextChange,
-                    modifier = Modifier.weight(1f),
-                    placeholder = {
-                        Text(
-                            "Ask about monuments, festivals...",
-                            color = Color.Gray.copy(alpha = 0.9f)
-                        )
-                    },
-                    colors = TextFieldDefaults.colors(
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black,
-                        cursorColor = Color(0xFF8E2DE2),
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    ),
-                    singleLine = true
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(
-                    onClick = onSendClick,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(Color(0xFF8E2DE2), Color(0xFF4A00E0))
-                            )
-                        )
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Send",
-                        tint = Color.White,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ChatBubble(isUser: Boolean, message: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
-    ) {
-        Card(
-            shape = RoundedCornerShape(
-                topStart = 16.dp,
-                topEnd = 16.dp,
-                bottomStart = if (isUser) 16.dp else 0.dp,
-                bottomEnd = if (isUser) 0.dp else 16.dp
-            ),
-            colors = CardDefaults.cardColors(
-                containerColor = if (isUser) Color(0xFF6A1B9A) else Color.White
-            ),
-            modifier = Modifier.widthIn(max = 280.dp),
-            elevation = CardDefaults.cardElevation(2.dp)
-        ) {
-            Text(
-                text = message,
-                modifier = Modifier.padding(12.dp),
-                color = if (isUser) Color.White else Color.Black
+            Icon(
+                Icons.Default.Search,
+                contentDescription = "Ask",
+                tint = Color(0xFF8E2DE2),
+                modifier = Modifier.size(18.dp)
             )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(questionText, color = Color.DarkGray)
         }
     }
 }

@@ -2,7 +2,7 @@ package com.example.richculture.ViewModels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.richculture.Data.ChatRequest
+import com.example.richculture.Data.AzadiChatRequest
 import com.example.richculture.retro.RetrofitInstance
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -10,7 +10,7 @@ import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.util.UUID
 
-class ChatbotViewModel : ViewModel() {
+class AzadiChatViewModel : ViewModel() {
 
     private val _chatResponse = MutableStateFlow<String?>(null)
     val chatResponse: StateFlow<String?> = _chatResponse
@@ -23,6 +23,7 @@ class ChatbotViewModel : ViewModel() {
 
     fun sendMessage(
         message: String,
+        leaderName: String,
         conversationId: String? = null
     ) {
         viewModelScope.launch {
@@ -31,13 +32,13 @@ class ChatbotViewModel : ViewModel() {
                 _error.value = null
 
                 val idToSend = conversationId ?: UUID.randomUUID().toString()
-                val request = ChatRequest(
+                val request = AzadiChatRequest(
                     message = message,
+                    leader_name = leaderName,
                     conversation_id = idToSend
                 )
 
-                // Directly call the correct API
-                val response = RetrofitInstance.chatApi.sendMessage(request)
+                val response = RetrofitInstance.azadiChatApi.sendMessage(request)
                 _chatResponse.value = response.response
 
             } catch (e: Exception) {
@@ -61,3 +62,4 @@ class ChatbotViewModel : ViewModel() {
         _error.value = null
     }
 }
+
