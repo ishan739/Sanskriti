@@ -22,6 +22,7 @@ import calenderrouter from "./routes/calender.route.js"
 import userrouter from "./routes/user.route.js"
 import postRouter from "./routes/post.route.js"
 import predictrouter from "./routes/predict.route.js"
+import eventrouter from "./routes/event.route.js"
 
 
 
@@ -68,6 +69,7 @@ app.use("/api/cal", calenderrouter)
 app.use("/api/user", userrouter)
 app.use("/api/post", postRouter)
 app.use("/api/predict", predictrouter)
+app.use("/api/event", eventrouter)
 
 
 
