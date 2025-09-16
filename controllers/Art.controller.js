@@ -79,10 +79,10 @@ export const uploadArtVideo = async (req, res) => {
       return res.status(400).json({ message: "No video uploaded" });
     }
 
-    // Upload to Cloudinary
+    
     const videoUrl = await uploadOnCloudinary(req.file.path);
 
-    // Update art with video URL
+    
     const updatedArt = await Art.findOneAndUpdate(
       { id: Number(id) },
       { videourl: videoUrl },
