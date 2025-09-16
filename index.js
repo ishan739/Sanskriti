@@ -24,6 +24,7 @@ import postRouter from "./routes/post.route.js"
 import predictrouter from "./routes/predict.route.js"
 import eventrouter from "./routes/event.route.js"
 import itemrouter from "./routes/item.route.js"
+import cartrouter from "./routes/cart.route.js"
 
 
 
@@ -73,6 +74,7 @@ app.use("/api/post", postRouter)
 app.use("/api/predict", predictrouter)
 app.use("/api/event", eventrouter)
 app.use("/api/item", itemrouter)
+app.use("/api/cart", cartrouter)
 
 
 
