@@ -67,5 +67,9 @@ object RetrofitInstance {
     val chatApi: ChatApi by lazy { tourGuideChatRetrofit.create(ChatApi::class.java) } // General Assistant
     val azadiChatApi: AzadiChatApi by lazy { azadiChatRetrofit.create(AzadiChatApi::class.java) } // Chat with Leaders
     val monumentChatApi: MonumentChatApi by lazy { monumentChatRetrofit.create(MonumentChatApi::class.java) } // Chat with Monuments
+
+//    Baazaar
+    val bazaarApi: BazaarApi by lazy { retrofit.create(BazaarApi::class.java) }
+
 }
 

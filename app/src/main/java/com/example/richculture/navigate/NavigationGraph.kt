@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.richculture.screens.*
+import com.example.richculture.ui.BazaarScreen
 import com.example.richculture.utility.cubeEnterTransition
 import com.example.richculture.utility.cubeExitTransition
 import com.example.richculture.utility.cubePopEnterTransition
@@ -57,7 +58,7 @@ fun NavigationGraph(
             Screen.Home, Screen.Stories, Screen.Bazaar, Screen.Chatbot, Screen.Profile,
             Screen.Order, Screen.HeritageExplorer, Screen.Trip, Screen.ArtsAndTraditions,
             Screen.FestivalsAndFood, Screen.ARScanAction, Screen.FestiveCalendar, Screen.CommunityWall,
-            Screen.AzadiChat, Screen.Camera
+            Screen.AzadiChat, Screen.Camera , Screen.Cart
         )
 
         allScreens.forEach { screen ->
@@ -84,6 +85,7 @@ fun NavigationGraph(
                     Screen.CommunityWall -> CommunityWallScreen(navController)
                     Screen.AzadiChat -> AzadiChatScreen(navController)
                     Screen.Camera -> CameraScreen(navController)
+                    Screen.Cart -> CartScreen(navController)
                     else -> {}
                 }
             }

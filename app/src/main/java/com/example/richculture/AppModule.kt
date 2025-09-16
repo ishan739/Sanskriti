@@ -29,5 +29,6 @@ val appModule = module {
     viewModel { ChatbotViewModel() }
     viewModel { MonumentViewModel() }
     viewModel { MonumentChatViewModel() }
+    viewModel { BazaarViewModel(get()) }
 }
 

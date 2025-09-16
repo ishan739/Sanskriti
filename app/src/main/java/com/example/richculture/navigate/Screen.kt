@@ -39,5 +39,7 @@ sealed class Screen(
 
     object WebView : Screen("webview", "WebView", -1)
 
+    object Cart : Screen("cart", "Cart", -1)
+
 }
 

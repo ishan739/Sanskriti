@@ -1,109 +1,195 @@
 package com.example.richculture.screens
 
-import android.graphics.drawable.Icon
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.AddCircle
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.example.richculture.Data.CartItem
+import com.example.richculture.ViewModels.BazaarViewModel
+import com.example.richculture.ViewModels.UiState
+import com.example.richculture.navigate.Screen
+import org.koin.androidx.compose.koinViewModel
 
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.outlined.AddCircle
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CartScreen(navController: NavHostController) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF8F9FA)) // light background
-            .padding(16.dp)
-    ) {
+fun CartScreen(
+    navController: NavController,
+    viewModel: BazaarViewModel = koinViewModel()
+) {
+    val cartState by viewModel.cartUiState.collectAsState()
 
-        // TopBar
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { navController.popBackStack() }) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back"
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("My Cart") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
-            }
-            Text(
-                text = "Your Cart",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(start = 8.dp)
             )
         }
+    ) { paddingValues ->
+        Box(modifier = Modifier
+            .padding(paddingValues)
+            .fillMaxSize()) {
+            when (val state = cartState) {
+                is UiState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                is UiState.Error -> Text(state.message, modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.error)
+                is UiState.Success -> {
+                    val cart = state.data
+                    if (cart == null || cart.items.isEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally,
 
-        Spacer(modifier = Modifier.height(16.dp))
+                            ) {
+                            Icon(Icons.Default.AddCircle, contentDescription = null, modifier = Modifier.size(80.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Your cart is empty", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Looks like you haven't added anything yet.", style = MaterialTheme.typography.bodyMedium)
 
-        // Cart Items
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.weight(1f) // takes available space
-        ) {
-            items(5) { index ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(2.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text("Cart Item #$index", style = MaterialTheme.typography.bodyLarge)
-                            Text("₹${(index + 1) * 200}", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
                         }
-
-                        Button(
-                            onClick = { /* remove item */ },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)) // red remove
-                        ) {
-                            Text("Remove", color = Color.White)
+                    } else {
+                        Column(Modifier.fillMaxSize()) {
+                            LazyColumn(
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(cart.items) { cartItem ->
+                                    CartItemRow(
+                                        item = cartItem,
+                                        onQuantityChange = { newQuantity ->
+                                            viewModel.updateCartItemQuantity(cartItem.item._id, newQuantity)
+                                        },
+                                        onRemove = { viewModel.removeCartItem(cartItem.item._id) }
+                                    )
+                                }
+                            }
+                            // --- Total Amount & Checkout Section ---
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shadowElevation = 8.dp
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("Total Amount:", style = MaterialTheme.typography.titleLarge)
+                                        Text(
+                                            "₹${"%.2f".format(cart.totalAmount)}",
+                                            style = MaterialTheme.typography.headlineSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Button(
+                                        onClick = { /* TODO: Handle checkout navigation */ },
+                                        modifier = Modifier.fillMaxWidth().height(50.dp)
+                                    ) {
+                                        Text("PROCEED TO CHECKOUT", style = MaterialTheme.typography.titleMedium)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
         }
+    }
+}
 
-        // Checkout Button
-        Button(
-            onClick = { /* checkout */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B))
+@Composable
+fun CartItemRow(
+    item: CartItem,
+    onQuantityChange: (Int) -> Unit,
+    onRemove: () -> Unit
+) {
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Proceed to Checkout", color = Color.White)
+            AsyncImage(
+                model = item.item.imageUrl,
+                contentDescription = item.item.name,
+                modifier = Modifier
+                    .size(90.dp)
+                    .clip(MaterialTheme.shapes.medium)
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 12.dp)
+            ) {
+                Text(item.item.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Price: ₹${"%.2f".format(item.priceAtPurchase)}", style = MaterialTheme.typography.bodyMedium)
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = { onQuantityChange(item.quantity - 1) },
+                        enabled = item.quantity > 1,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(Icons.Outlined.AddCircle, contentDescription = "Decrease quantity")
+                    }
+                    Text(
+                        "${item.quantity}",
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.width(40.dp),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    IconButton(
+                        onClick = { onQuantityChange(item.quantity + 1) },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(Icons.Outlined.AddCircle, contentDescription = "Increase quantity")
+                    }
+                }
+            }
+            IconButton(onClick = onRemove) {
+                Icon(Icons.Default.Delete, contentDescription = "Remove item", tint = MaterialTheme.colorScheme.error)
+            }
         }
     }
 }
