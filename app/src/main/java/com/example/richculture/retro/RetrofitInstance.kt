@@ -14,7 +14,7 @@ object RetrofitInstance {
     private const val BASE_URL = "https://sanskriti-p2v9.onrender.com/api/"
     private const val TOUR_GUIDE_CHAT_URL = "https://tour-guide-tvmf.onrender.com/"
     private const val AZADI_CHAT_URL = "https://bose-glq9.onrender.com/"
-    private const val TRAVEL_PLANNER_URL = "https://travel-planner-os5y.onrender.com/"
+    private const val TRAVEL_PLANNER_URL = "https://travel-planner-h31c.onrender.com/"
     private const val MONUMENT_CHAT_URL = "https://kalam-0bny.onrender.com/"
 
 
@@ -63,7 +63,7 @@ object RetrofitInstance {
     val scannerApi : ScannerApi by lazy { retrofit.create(ScannerApi::class.java) }
 
     // APIs from their specific URLs
-    val travelPlannerApi: TravelPlannerApi by lazy { travelPlannerRetrofit.create(TravelPlannerApi::class.java) }
+    val tripApi: TravelPlannerApi by lazy { travelPlannerRetrofit.create(TravelPlannerApi::class.java) }
     val chatApi: ChatApi by lazy { tourGuideChatRetrofit.create(ChatApi::class.java) } // General Assistant
     val azadiChatApi: AzadiChatApi by lazy { azadiChatRetrofit.create(AzadiChatApi::class.java) } // Chat with Leaders
     val monumentChatApi: MonumentChatApi by lazy { monumentChatRetrofit.create(MonumentChatApi::class.java) } // Chat with Monuments

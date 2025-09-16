@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.richculture.screens.*
 import com.example.richculture.ui.BazaarScreen
+import com.example.richculture.ui.TripMateScreen
 import com.example.richculture.utility.cubeEnterTransition
 import com.example.richculture.utility.cubeExitTransition
 import com.example.richculture.utility.cubePopEnterTransition

@@ -1,5 +1,11 @@
 package com.example.richculture.Data
 
+data class TripResponse(
+    val conversation_id: String,
+    val places: List<Place>,
+    val optimized_route: List<String>
+)
+
 data class Place(
     val budget: String,
     val duration: String,
@@ -9,13 +15,9 @@ data class Place(
     val right_time_to_visit: String
 )
 
-data class TravelPlannerResponse(
-    val conversation_id: String,
-    val places: List<Place>
-)
 
 
-data class TravelPlannerRequest(
+data class TripRequest(
     val message: String,
     val role: String,
     val conversation_id: String
