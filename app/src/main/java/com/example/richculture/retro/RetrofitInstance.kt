@@ -10,12 +10,11 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object RetrofitInstance {
+    // --- URLs for all our different services ---
     private const val BASE_URL = "https://sanskriti-p2v9.onrender.com/api/"
     private const val TOUR_GUIDE_CHAT_URL = "https://tour-guide-tvmf.onrender.com/"
     private const val AZADI_CHAT_URL = "https://bose-glq9.onrender.com/"
     private const val TRAVEL_PLANNER_URL = "https://travel-planner-os5y.onrender.com/"
-
-    // ✅ NEW: The URL for the new Monument Chat API
     private const val MONUMENT_CHAT_URL = "https://kalam-0bny.onrender.com/"
 
 
@@ -40,7 +39,7 @@ object RetrofitInstance {
             .build()
     }
 
-    // ----- Retrofit instances using the helper -----
+    // --- Retrofit instances for each service ---
     private val retrofit by lazy { createRetrofit(BASE_URL) }
     private val tourGuideChatRetrofit by lazy { createRetrofit(TOUR_GUIDE_CHAT_URL) }
     private val travelPlannerRetrofit by lazy { createRetrofit(TRAVEL_PLANNER_URL) }
@@ -48,18 +47,25 @@ object RetrofitInstance {
     private val monumentChatRetrofit by lazy { createRetrofit(MONUMENT_CHAT_URL) }
 
 
-    // ----- Public APIs -----
+    // --- ✅ CORRECTED: All APIs are now present and correct ---
+
+    // APIs from the main BASE_URL
     val monumentApi: MonumentApi by lazy { retrofit.create(MonumentApi::class.java) }
     val festivalApi: FestivalApi by lazy { retrofit.create(FestivalApi::class.java) }
-    // ... other existing APIs ...
-    val scannerApi : ScannerApi by lazy { retrofit.create(ScannerApi::class.java) }
+    val storyApi: StoryApi by lazy { retrofit.create(StoryApi::class.java) }
+    val foodApi: FoodApi by lazy { retrofit.create(FoodApi::class.java) }
+    val danceApi: DanceApi by lazy { retrofit.create(DanceApi::class.java) }
+    val musicApi: MusicApi by lazy { retrofit.create(MusicApi::class.java) }
+    val artApi: ArtApi by lazy { retrofit.create(ArtApi::class.java) }
+    val calendarApi: CalendarApi by lazy { retrofit.create(CalendarApi::class.java) }
     val communityApi: CommunityApi by lazy { retrofit.create(CommunityApi::class.java) }
     val userApi: UserApi by lazy { retrofit.create(UserApi::class.java) }
-    val travelPlannerApi: TravelPlannerApi by lazy { travelPlannerRetrofit.create(TravelPlannerApi::class.java) }
-    val chatApi: ChatApi by lazy { tourGuideChatRetrofit.create(ChatApi::class.java) }
-    val azadiChatApi: AzadiChatApi by lazy { azadiChatRetrofit.create(AzadiChatApi::class.java) }
+    val scannerApi : ScannerApi by lazy { retrofit.create(ScannerApi::class.java) }
 
-    // ✅ NEW: The public API for the Monument Chat feature
-    val monumentChatApi: MonumentChatApi by lazy { monumentChatRetrofit.create(MonumentChatApi::class.java) }
+    // APIs from their specific URLs
+    val travelPlannerApi: TravelPlannerApi by lazy { travelPlannerRetrofit.create(TravelPlannerApi::class.java) }
+    val chatApi: ChatApi by lazy { tourGuideChatRetrofit.create(ChatApi::class.java) } // General Assistant
+    val azadiChatApi: AzadiChatApi by lazy { azadiChatRetrofit.create(AzadiChatApi::class.java) } // Chat with Leaders
+    val monumentChatApi: MonumentChatApi by lazy { monumentChatRetrofit.create(MonumentChatApi::class.java) } // Chat with Monuments
 }
 

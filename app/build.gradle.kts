@@ -100,6 +100,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.compose.runtime.livedata)
+    implementation(libs.androidx.compose.animation)
 
     // Testing
     testImplementation(libs.junit)

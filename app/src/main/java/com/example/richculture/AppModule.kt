@@ -27,5 +27,7 @@ val appModule = module {
     // ✅ CRITICAL FIX: Added the missing recipes for both chat ViewModels
     viewModel { AzadiChatViewModel() }
     viewModel { ChatbotViewModel() }
+    viewModel { MonumentViewModel() }
+    viewModel { MonumentChatViewModel() }
 }
 
