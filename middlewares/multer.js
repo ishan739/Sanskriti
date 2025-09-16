@@ -40,3 +40,19 @@ export const uploadAudio = multer({
 });
 
 
+export const uploadVideo = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    if (
+      file.mimetype.startsWith("video/") ||
+      file.mimetype === "application/octet-stream" 
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only video files are allowed!"), false);
+    }
+  },
+});
+
+
+

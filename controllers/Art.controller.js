@@ -69,3 +69,35 @@ export const uploadArtImage = async (req, res) => {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
+
+
+export const uploadArtVideo = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ message: "No video uploaded" });
+    }
+
+    // Upload to Cloudinary
+    const videoUrl = await uploadOnCloudinary(req.file.path);
+
+    // Update art with video URL
+    const updatedArt = await Art.findOneAndUpdate(
+      { id: Number(id) },
+      { videourl: videoUrl },
+      { new: true }
+    );
+
+    if (!updatedArt) {
+      return res.status(404).json({ message: "Art not found" });
+    }
+
+    res.status(200).json({
+      message: "Art video uploaded successfully",
+      art: updatedArt,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};

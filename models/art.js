@@ -32,6 +32,11 @@ const artSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
+  videourl: {
+    type: String,
+    default: ""
+    
+  },
   wikiurl: {
     type: String,
     default: "",
