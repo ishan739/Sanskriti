@@ -1,5 +1,7 @@
 package com.example.richculture.screens
 
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -23,6 +25,7 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -31,7 +34,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.richculture.Data.Art
@@ -57,7 +64,7 @@ fun ArtsAndTraditionsScreen(
     artViewModel: ArtViewModel = viewModel(),
     musicViewModel: MusicViewModel = viewModel()
 ) {
-    var selectedCategory by remember { mutableStateOf(ArtCategory.Dance) }
+    var selectedCategory by remember { mutableStateOf(ArtCategory.Arts) }
 
     // Fetch data when the screen is first composed
     LaunchedEffect(Unit) {
@@ -270,10 +277,29 @@ fun DanceCard(dance: Dance) {
     }
 }
 
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 fun ArtCard(art: Art) {
     var expanded by remember { mutableStateOf(false) }
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
+
+    // ExoPlayer instance
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            art.videourl?.let { url ->
+                val mediaItem = MediaItem.fromUri(url)
+                setMediaItem(mediaItem)
+                prepare()
+            }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            exoPlayer.release()
+        }
+    }
 
     Card(
         modifier = Modifier.clickable { expanded = !expanded },
@@ -286,10 +312,35 @@ fun ArtCard(art: Art) {
                 .padding(16.dp)
                 .animateContentSize()
         ) {
-            AsyncImage(model = art.imageurl, contentDescription = art.name, modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp)
-                .clip(RoundedCornerShape(16.dp)), contentScale = ContentScale.Crop)
+            if (art.videourl.isNotEmpty()) {
+                AndroidView(
+                    factory = {
+                        PlayerView(it).apply {
+                            player = exoPlayer
+                            useController = true // ✅ shows play/pause, seekbar etc.
+                            layoutParams = FrameLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                600 // height in px (adjust as needed)
+                            )
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                )
+            } else {
+                AsyncImage(
+                    model = art.imageurl,
+                    contentDescription = art.name,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(16.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
             Text(art.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
@@ -313,6 +364,7 @@ fun ArtCard(art: Art) {
         }
     }
 }
+
 
 @Composable
 fun MusicCard(music: Music) {

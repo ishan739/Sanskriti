@@ -12,5 +12,6 @@ data class Art(
     val wikiurl: String,
     val __v: Int,
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String,
+    val videourl: String
 )
