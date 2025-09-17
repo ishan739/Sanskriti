@@ -130,4 +130,3 @@ class StoryViewModel(application: Application) : AndroidViewModel(application) {
         AudioPlayerManager.releasePlayer()
     }
 }
-

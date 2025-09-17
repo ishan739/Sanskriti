@@ -1,6 +1,7 @@
 package com.example.richculture.di
 
 import com.example.richculture.ViewModels.*
+import com.example.richculture.ui.BazaarScreen
 import com.example.richculture.utility.PrefManager
 import com.example.richculture.utility.ScanHistoryManager
 import com.example.richculture.utility.SessionManager
@@ -30,5 +31,6 @@ val appModule = module {
     viewModel { MonumentViewModel() }
     viewModel { MonumentChatViewModel() }
     viewModel { BazaarViewModel(get()) }
-}
 
+    viewModel { BazaarViewModel(get()) }
+}
