@@ -1,8 +1,10 @@
 package com.example.richculture.ui
 
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -23,6 +25,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -32,37 +35,8 @@ import com.example.richculture.Data.Place
 import com.example.richculture.ViewModels.TravelPlannerUiState
 import com.example.richculture.ViewModels.TravelPlannerViewModel
 import org.koin.androidx.compose.koinViewModel
+import com.example.richculture.R
 
-// Mock data classes for previewing and compilation
-// You can remove these if they are already defined in your project.
-// namespace com.example.richculture.Data {
-//     data class Place(
-//         val location: String,
-//         val duration: String,
-//         val budget: String,
-//         val opening_time: String,
-//         val closing_time: String,
-//         val right_time_to_visit: String
-//     )
-//     data class TripResponse(
-//         val places: List<Place>,
-//         val optimized_route: List<String>
-//     )
-// }
-//
-// namespace com.example.richculture.ViewModels {
-//     sealed interface TravelPlannerUiState {
-//         object Empty : TravelPlannerUiState
-//         object Loading : TravelPlannerUiState
-//         data class Success(val tripResponse: com.example.richculture.Data.TripResponse) : TravelPlannerUiState
-//         data class Error(val message: String) : TravelPlannerUiState
-//     }
-//     // Mock ViewModel as well
-//     class TravelPlannerViewModel : androidx.lifecycle.ViewModel() {
-//         val uiState = kotlinx.coroutines.flow.MutableStateFlow<TravelPlannerUiState>(TravelPlannerUiState.Empty)
-//         fun fetchTripPlan(destination: String) {}
-//     }
-// }
 
 
 @Composable
@@ -273,12 +247,12 @@ fun PlaceCard(place: Place, primaryColor: Color) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 InfoChip(
                     text = "${place.opening_time} - ${place.closing_time}",
-                    icon = Icons.Default.AddCircle,
+                    imageRes = R.drawable.ic_time,
                     color = primaryColor
                 )
                 InfoChip(
                     text = place.right_time_to_visit,
-                    icon = Icons.Default.AddCircle,
+                    imageRes = R.drawable.ic_right,
                     color = Color(0xFFFFA000) // Amber
                 )
             }
@@ -287,7 +261,7 @@ fun PlaceCard(place: Place, primaryColor: Color) {
 }
 
 @Composable
-fun InfoChip(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector, color: Color) {
+fun InfoChip(text: String, @DrawableRes imageRes: Int, color: Color) {
     Row(
         modifier = Modifier
             .background(color.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
@@ -295,7 +269,11 @@ fun InfoChip(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
+        Image(
+            painter = painterResource(id = imageRes),
+            contentDescription = null,
+            modifier = Modifier.size(16.dp)
+        )
         Text(text, color = color, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
     }
 }
@@ -318,9 +296,9 @@ fun RouteTimeline(route: List<String>, primaryColor: Color, accentColor: Color) 
                         contentAlignment = Alignment.Center
                     ) {
                         if (index == 0) {
-                            Icon(Icons.Default.AddCircle, contentDescription = "Start", tint = Color.White, modifier = Modifier.size(12.dp))
+                            Icon(painter = painterResource(id = R.drawable.inside_tripmate), contentDescription = "Start", tint = Color.White, modifier = Modifier.size(20.dp))
                         } else {
-                            Text((index + 1).toString(), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Icon(painter = painterResource(id = R.drawable.inside_tripmate), contentDescription = "Start", tint = Color.White, modifier = Modifier.size(20.dp))
                         }
                     }
 

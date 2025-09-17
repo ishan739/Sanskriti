@@ -165,7 +165,7 @@ fun LeaderCard(leader: Leader, onClick: () -> Unit) {
     ) {
         Column {
             Box(modifier = Modifier.fillMaxWidth().height(120.dp).background(leader.gradient)) {
-                Image(painter = painterResource(id = leader.imageResId), contentDescription = leader.name, modifier = Modifier.size(60.dp).align(Alignment.Center).clip(CircleShape), contentScale = ContentScale.Crop)
+                Image(painter = painterResource(id = leader.imageResId), contentDescription = leader.name, modifier = Modifier.align(Alignment.Center), contentScale = ContentScale.FillBounds)
             }
             Column(Modifier.padding(12.dp)) {
                 Text(leader.name, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
