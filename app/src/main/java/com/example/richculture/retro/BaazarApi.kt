@@ -36,4 +36,3 @@ interface BazaarApi {
         @Path("itemId") itemId: String
     ): Response<CartResponse>
 }
-

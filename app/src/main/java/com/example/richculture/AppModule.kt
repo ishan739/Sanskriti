@@ -1,11 +1,11 @@
 package com.example.richculture.di
 
 import com.example.richculture.ViewModels.*
-import com.example.richculture.ui.BazaarScreen
 import com.example.richculture.utility.PrefManager
 import com.example.richculture.utility.ScanHistoryManager
 import com.example.richculture.utility.SessionManager
 import com.example.richculture.utility.TokenManager
+import com.example.richculture.viewmodel.BazaarViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
@@ -30,7 +30,5 @@ val appModule = module {
     viewModel { ChatbotViewModel() }
     viewModel { MonumentViewModel() }
     viewModel { MonumentChatViewModel() }
-    viewModel { BazaarViewModel(get()) }
-
-    viewModel { BazaarViewModel(get()) }
+    viewModel { BazaarViewModel() }
 }

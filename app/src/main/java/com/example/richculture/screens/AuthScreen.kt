@@ -114,7 +114,7 @@ fun AuthScreen(
             Box(
                 contentAlignment = Alignment.Center
             ) {
-                Image(painter = painterResource(id = R.drawable.ic_main),
+                Image(painter = painterResource(id = R.drawable.sanskriti_logo),
                     contentDescription = "Logo",
                     modifier = Modifier.size(80.dp).clip(CircleShape).background(Color.White)
                     )

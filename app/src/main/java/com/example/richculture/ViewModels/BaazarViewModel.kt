@@ -1,162 +1,231 @@
-package com.example.richculture.ViewModels
+package com.example.richculture.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.richculture.Data.*
-import com.example.richculture.retro.RetrofitInstance
-import com.example.richculture.utility.SessionManager
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import com.example.richculture.retro.BazaarApi
+import com.example.richculture.retro.RetrofitInstance.bazaarApi
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
-import java.io.IOException
-import kotlin.math.max
+import kotlinx.coroutines.delay
+data class BazaarUiState(
+    val products: List<Product> = emptyList(),
+    val filteredProducts: List<Product> = emptyList(),
+    val categories: List<String> = emptyList(),
+    val selectedCategory: String = "All",
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val searchQuery: String = ""
+)
 
-sealed interface UiState<out T> {
-    data class Success<T>(val data: T) : UiState<T>
-    data class Error(val message: String) : UiState<Nothing>
-    object Loading : UiState<Nothing>
-}
+data class CartUiState(
+    val cartItems: List<CartItem> = emptyList(),
+    val totalAmount: Double = 0.0,
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val cartItemCount: Int = 0
+)
 
-class BazaarViewModel(private val sessionManager: SessionManager) : ViewModel() {
+data class UiMessage(
+    val id: Long,
+    val message: String,
+    val isError: Boolean = false
+)
 
-    private val _productsUiState = MutableStateFlow<UiState<List<Product>>>(UiState.Loading)
-    val productsUiState: StateFlow<UiState<List<Product>>> = _productsUiState.asStateFlow()
+class BazaarViewModel() : ViewModel() {
 
-    private val _selectedProduct = MutableStateFlow<Product?>(null)
-    val selectedProduct: StateFlow<Product?> = _selectedProduct.asStateFlow()
+    // Auth token - In real app, get this from AuthManager/SharedPreferences
+    private val authToken = "Bearer your_auth_token_here"
 
-    private val _cartUiState = MutableStateFlow<UiState<CartResponse?>>(UiState.Loading)
-    val cartUiState: StateFlow<UiState<CartResponse?>> = _cartUiState.asStateFlow()
+    // UI State flows
+    private val _bazaarUiState = MutableStateFlow(BazaarUiState())
+    val bazaarUiState = _bazaarUiState.asStateFlow()
 
-    private val _addToCartSuccessMessage = MutableStateFlow<String?>(null)
-    val addToCartSuccessMessage: StateFlow<String?> = _addToCartSuccessMessage.asStateFlow()
+    private val _cartUiState = MutableStateFlow(CartUiState())
+    val cartUiState = _cartUiState.asStateFlow()
 
-    private val _cartItemCount = MutableStateFlow(0)
-    val cartItemCount: StateFlow<Int> = _cartItemCount.asStateFlow()
+    // Messages for snackbars/toasts
+    private val _messages = MutableStateFlow<List<UiMessage>>(emptyList())
+    val messages = _messages.asStateFlow()
 
+    // Track pending operations for optimistic updates
+    private val pendingCartOperations = mutableMapOf<String, Int>()
 
     init {
-        fetchProducts(null)
-        getCart()
+        loadProducts()
+        loadCart()
     }
 
-    fun fetchProducts(category: String?) {
+    // --- Product Operations ---
+
+    fun loadProducts() {
         viewModelScope.launch {
-            _productsUiState.value = UiState.Loading
+            _bazaarUiState.update { it.copy(isLoading = true, error = null) }
+
             try {
-                val response = if (category.isNullOrBlank()) {
-                    RetrofitInstance.bazaarApi.getAllItems()
-                } else {
-                    RetrofitInstance.bazaarApi.getItemsByCategory(category)
-                }
-
+                val response = bazaarApi.getAllItems()
                 if (response.isSuccessful) {
-                    _productsUiState.value = UiState.Success(response.body() ?: emptyList())
-                } else {
-                    _productsUiState.value = UiState.Error("Error: ${response.message()}")
-                }
-            } catch (e: IOException) {
-                _productsUiState.value = UiState.Error("Network error. Please check your connection.")
-            } catch (e: HttpException) {
-                _productsUiState.value = UiState.Error("An unexpected error occurred.")
-            }
-        }
-    }
+                    val products = response.body() ?: emptyList()
+                    val categories = listOf("All") + products.map { it.category }.distinct().sorted()
 
-    fun getProductById(productId: String) {
-        viewModelScope.launch {
-            val product = (_productsUiState.value as? UiState.Success)?.data?.find { it._id == productId }
-            _selectedProduct.value = product
-        }
-    }
-
-    fun getCart() {
-        sessionManager.getCurrentUserToken()?.let { token ->
-            viewModelScope.launch {
-                _cartUiState.value = UiState.Loading
-                try {
-                    val response = RetrofitInstance.bazaarApi.getCart("Bearer $token")
-                    if (response.isSuccessful) {
-                        val cart = response.body()
-                        _cartUiState.value = UiState.Success(cart)
-                        _cartItemCount.value = cart?.items?.sumOf { it.quantity } ?: 0
-                    } else {
-                        _cartUiState.value = UiState.Success(null)
-                        _cartItemCount.value = 0
+                    _bazaarUiState.update { currentState ->
+                        currentState.copy(
+                            products = products,
+                            filteredProducts = products,
+                            categories = categories,
+                            isLoading = false,
+                            error = null
+                        )
                     }
-                } catch (e: Exception) {
-                    _cartUiState.value = UiState.Error("Could not load cart.")
-                    _cartItemCount.value = 0
+                } else {
+                    _bazaarUiState.update {
+                        it.copy(isLoading = false, error = "Failed to load products: ${response.message()}")
+                    }
+                }
+            } catch (e: Exception) {
+                _bazaarUiState.update {
+                    it.copy(isLoading = false, error = "Network error: ${e.message}")
                 }
             }
-        } ?: run {
-            _cartUiState.value = UiState.Success(null)
-            _cartItemCount.value = 0
+        }
+    }
+
+    fun selectCategory(category: String) {
+        _bazaarUiState.update { currentState ->
+            val filtered = if (category == "All") {
+                currentState.products
+            } else {
+                currentState.products.filter { it.category == category }
+            }
+
+            currentState.copy(
+                selectedCategory = category,
+                filteredProducts = filtered.filter { product ->
+                    currentState.searchQuery.isEmpty() ||
+                            product.name.contains(currentState.searchQuery, ignoreCase = true) ||
+                            product.description.contains(currentState.searchQuery, ignoreCase = true)
+                }
+            )
+        }
+    }
+
+    fun searchProducts(query: String) {
+        _bazaarUiState.update { currentState ->
+            val baseProducts = if (currentState.selectedCategory == "All") {
+                currentState.products
+            } else {
+                currentState.products.filter { it.category == currentState.selectedCategory }
+            }
+
+            val filtered = if (query.isEmpty()) {
+                baseProducts
+            } else {
+                baseProducts.filter { product ->
+                    product.name.contains(query, ignoreCase = true) ||
+                            product.description.contains(query, ignoreCase = true) ||
+                            product.category.contains(query, ignoreCase = true) ||
+                            product.materialUsed.contains(query, ignoreCase = true) ||
+                            product.origin.contains(query, ignoreCase = true) ||
+                            product.artistName?.contains(query, ignoreCase = true) == true
+                }
+            }
+
+            currentState.copy(
+                searchQuery = query,
+                filteredProducts = filtered
+            )
+        }
+    }
+
+    // --- Cart Operations ---
+
+    fun loadCart() {
+        viewModelScope.launch {
+            _cartUiState.update { it.copy(isLoading = true, error = null) }
+
+            try {
+                val response = bazaarApi.getCart(authToken)
+                if (response.isSuccessful) {
+                    val cartResponse = response.body()
+                    if (cartResponse != null) {
+                        _cartUiState.update {
+                            it.copy(
+                                cartItems = cartResponse.items,
+                                totalAmount = cartResponse.totalAmount,
+                                cartItemCount = cartResponse.items.sumOf { item -> item.quantity },
+                                isLoading = false,
+                                error = null
+                            )
+                        }
+                    } else {
+                        _cartUiState.update { it.copy(isLoading = false, cartItems = emptyList()) }
+                    }
+                } else {
+                    _cartUiState.update {
+                        it.copy(isLoading = false, error = "Failed to load cart")
+                    }
+                }
+            } catch (e: Exception) {
+                _cartUiState.update {
+                    it.copy(isLoading = false, error = "Network error: ${e.message}")
+                }
+            }
         }
     }
 
     fun addToCart(product: Product, quantity: Int = 1) {
-        sessionManager.getCurrentUserToken()?.let { token ->
-            _cartItemCount.update { it + quantity }
-            _addToCartSuccessMessage.value = "${product.name} added to cart!"
+        val optimisticCartItem = CartItem(
+            item = product,
+            quantity = quantity,
+            priceAtPurchase = product.price,
+            _id = "temp_${product._id}_${System.currentTimeMillis()}"
+        )
 
-            viewModelScope.launch {
-                try {
-                    val request = AddToCartRequest(product._id, quantity)
-                    val response = RetrofitInstance.bazaarApi.addToCart("Bearer $token", request)
-                    if (response.isSuccessful) {
-                        val cart = response.body()
-                        _cartUiState.value = UiState.Success(cart)
-                        _cartItemCount.value = cart?.items?.sumOf { it.quantity } ?: 0
-                    } else {
-                        _cartItemCount.update { max(0, it - quantity) }
-                    }
-                } catch (e: Exception) {
-                    _cartItemCount.update { max(0, it - quantity) }
+        val currentPending = pendingCartOperations[product._id] ?: 0
+        pendingCartOperations[product._id] = currentPending + quantity
+
+        _cartUiState.update { currentState ->
+            val existingIndex = currentState.cartItems.indexOfFirst { it.item._id == product._id }
+            val updatedItems = if (existingIndex != -1) {
+                currentState.cartItems.toMutableList().apply {
+                    this[existingIndex] = this[existingIndex].copy(quantity = this[existingIndex].quantity + quantity)
                 }
+            } else {
+                currentState.cartItems + optimisticCartItem
             }
-        }
-    }
 
-    fun removeCartItem(itemId: String) {
-        val currentState = _cartUiState.value
-        if (currentState is UiState.Success && currentState.data != null) {
-            val originalCart = currentState.data
-
-            // Optimistic UI update
-            val updatedItems = originalCart.items.filterNot { it.item._id == itemId }
-            val updatedCart = originalCart.copy(
-                items = updatedItems,
-                totalAmount = updatedItems.sumOf { it.priceAtPurchase * it.quantity }
+            currentState.copy(
+                cartItems = updatedItems,
+                totalAmount = updatedItems.sumOf { it.priceAtPurchase * it.quantity },
+                cartItemCount = updatedItems.sumOf { it.quantity }
             )
-            _cartUiState.value = UiState.Success(updatedCart)
-            _cartItemCount.value = updatedCart.items.sumOf { it.quantity }
+        }
 
-            sessionManager.getCurrentUserToken()?.let { token ->
-                viewModelScope.launch {
-                    try {
-                        val response = RetrofitInstance.bazaarApi.removeCartItem("Bearer $token", itemId)
-                        if (response.isSuccessful) {
-                            // Sync with the server's response for consistency
-                            val finalCart = response.body()
-                            _cartUiState.value = UiState.Success(finalCart)
-                            _cartItemCount.value = finalCart?.items?.sumOf { it.quantity } ?: 0
-                        } else {
-                            // If it fails, roll back to the original state
-                            _cartUiState.value = UiState.Success(originalCart)
-                            _cartItemCount.value = originalCart.items.sumOf { it.quantity }
-                        }
-                    } catch (e: Exception) {
-                        _cartUiState.value = UiState.Success(originalCart)
-                        _cartItemCount.value = originalCart.items.sumOf { it.quantity }
-                    }
+        showMessage("Adding ${product.name} to cart...")
+
+        viewModelScope.launch {
+            try {
+                val request = AddToCartRequest(itemId = product._id, quantity = quantity)
+                val response = bazaarApi.addToCart(authToken, request)
+
+                if (response.isSuccessful) {
+                    // Always reload cart after success to sync UI fully with backend state
+                    loadCart()
+                    showMessage("${product.name} added to cart!")
+                } else {
+                    loadCart()
+                    showMessage("Failed to add ${product.name} to cart", isError = true)
                 }
+            } catch (e: Exception) {
+                loadCart()
+                showMessage("Network error: ${e.message}", isError = true)
+            } finally {
+                pendingCartOperations.remove(product._id)
             }
         }
     }
+
+
 
     fun updateCartItemQuantity(itemId: String, newQuantity: Int) {
         if (newQuantity <= 0) {
@@ -164,50 +233,136 @@ class BazaarViewModel(private val sessionManager: SessionManager) : ViewModel() 
             return
         }
 
-        val currentState = _cartUiState.value
-        if (currentState is UiState.Success && currentState.data != null) {
-            val originalCart = currentState.data
-
-            // Optimistic UI update
-            val updatedItems = originalCart.items.map {
-                if (it.item._id == itemId) it.copy(quantity = newQuantity) else it
-            }
-            val updatedCart = originalCart.copy(
-                items = updatedItems,
-                totalAmount = updatedItems.sumOf { it.priceAtPurchase * it.quantity }
-            )
-            _cartUiState.value = UiState.Success(updatedCart)
-            _cartItemCount.value = updatedCart.items.sumOf { it.quantity }
-
-            sessionManager.getCurrentUserToken()?.let { token ->
-                viewModelScope.launch {
-                    try {
-                        val request = UpdateQuantityRequest(newQuantity)
-                        val response = RetrofitInstance.bazaarApi.updateCartItemQuantity("Bearer $token", itemId, request)
-                        if (response.isSuccessful) {
-                            // Sync with the server's response for consistency
-                            val finalCart = response.body()
-                            _cartUiState.value = UiState.Success(finalCart)
-                            _cartItemCount.value = finalCart?.items?.sumOf { it.quantity } ?: 0
-                        } else {
-                            _cartUiState.value = UiState.Success(originalCart)
-                            _cartItemCount.value = originalCart.items.sumOf { it.quantity }
-                        }
-                    } catch (e: Exception) {
-                        _cartUiState.value = UiState.Success(originalCart)
-                        _cartItemCount.value = originalCart.items.sumOf { it.quantity }
-                    }
+        // Optimistic update
+        _cartUiState.update { currentState ->
+            val updatedItems = currentState.cartItems.map { cartItem ->
+                if (cartItem.item._id == itemId) {
+                    cartItem.copy(quantity = newQuantity)
+                } else {
+                    cartItem
                 }
+            }
+
+            currentState.copy(
+                cartItems = updatedItems,
+                totalAmount = updatedItems.sumOf { it.priceAtPurchase * it.quantity },
+                cartItemCount = updatedItems.sumOf { it.quantity }
+            )
+        }
+
+        // API call with debouncing to avoid too many requests
+        viewModelScope.launch {
+            delay(500) // Debounce for 500ms
+            try {
+                val request = UpdateQuantityRequest(quantity = newQuantity)
+                val response = bazaarApi.updateCartItemQuantity(authToken, itemId, request)
+
+                if (response.isSuccessful) {
+                    val cartResponse = response.body()
+                    if (cartResponse != null) {
+                        _cartUiState.update {
+                            it.copy(
+                                cartItems = cartResponse.items,
+                                totalAmount = cartResponse.totalAmount,
+                                cartItemCount = cartResponse.items.sumOf { item -> item.quantity }
+                            )
+                        }
+                    }
+                } else {
+                    // Revert on failure
+                    loadCart()
+                    showMessage("Failed to update quantity", isError = true)
+                }
+            } catch (e: Exception) {
+                loadCart()
+                showMessage("Network error: ${e.message}", isError = true)
             }
         }
     }
 
-    fun clearSelectedProduct() {
-        _selectedProduct.value = null
+    fun removeCartItem(itemId: String) {
+        val removingItem = _cartUiState.value.cartItems.find { it.item._id == itemId }
+
+        // Optimistic update
+        _cartUiState.update { currentState ->
+            val updatedItems = currentState.cartItems.filter { it.item._id != itemId }
+            currentState.copy(
+                cartItems = updatedItems,
+                totalAmount = updatedItems.sumOf { it.priceAtPurchase * it.quantity },
+                cartItemCount = updatedItems.sumOf { it.quantity }
+            )
+        }
+
+        if (removingItem != null) {
+            showMessage("Removing ${removingItem.item.name} from cart...")
+        }
+
+        viewModelScope.launch {
+            try {
+                val response = bazaarApi.removeCartItem(authToken, itemId)
+
+                if (response.isSuccessful) {
+                    val cartResponse = response.body()
+                    if (cartResponse != null) {
+                        _cartUiState.update {
+                            it.copy(
+                                cartItems = cartResponse.items,
+                                totalAmount = cartResponse.totalAmount,
+                                cartItemCount = cartResponse.items.sumOf { item -> item.quantity }
+                            )
+                        }
+                        showMessage("${removingItem?.item?.name ?: "Item"} removed from cart")
+                    }
+                } else {
+                    // Revert on failure
+                    loadCart()
+                    showMessage("Failed to remove item", isError = true)
+                }
+            } catch (e: Exception) {
+                loadCart()
+                showMessage("Network error: ${e.message}", isError = true)
+            }
+        }
     }
 
-    fun clearAddToCartSuccessMessage() {
-        _addToCartSuccessMessage.value = null
+    fun getCartItemQuantity(productId: String): Int {
+        val cartQuantity = _cartUiState.value.cartItems
+            .find { it.item._id == productId }?.quantity ?: 0
+        val pendingQuantity = pendingCartOperations[productId] ?: 0
+        return cartQuantity + pendingQuantity
+    }
+
+    fun isProductInCart(productId: String): Boolean {
+        return _cartUiState.value.cartItems.any { it.item._id == productId } ||
+                pendingCartOperations.containsKey(productId)
+    }
+
+    // --- Message Management ---
+
+    private fun showMessage(message: String, isError: Boolean = false) {
+        val uiMessage = UiMessage(
+            id = System.currentTimeMillis(),
+            message = message,
+            isError = isError
+        )
+        _messages.update { it + uiMessage }
+    }
+
+    fun messageShown(messageId: Long) {
+        _messages.update { messages ->
+            messages.filterNot { it.id == messageId }
+        }
+    }
+
+    // --- Utility Functions ---
+
+    fun refreshData() {
+        loadProducts()
+        loadCart()
+    }
+
+    fun clearError() {
+        _bazaarUiState.update { it.copy(error = null) }
+        _cartUiState.update { it.copy(error = null) }
     }
 }
-
