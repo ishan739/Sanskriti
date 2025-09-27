@@ -5,7 +5,10 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateColor
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,21 +20,22 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -39,39 +43,46 @@ import coil.compose.AsyncImage
 import com.example.richculture.Data.User
 import com.example.richculture.R
 import com.example.richculture.ViewModels.UserViewModel
-import com.example.richculture.navigate.Screen
 import com.example.richculture.utility.SessionManager
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.koin.androidx.compose.koinViewModel
 
-// --- Data Models for UI (keeping dummy data for sections without APIs yet) ---
+// --- Data Models ---
 data class ProgressInfo(
     val levelProgress: Float, val sitesVisited: Int, val festivalsAttended: Int, val craftsBought: Int
 )
 data class Badge(
     val icon: ImageVector, val title: String, val description: String, val progress: Int, val color: Color
 )
-data class SavedItem(
-    val imageResId: Int, val title: String, val category: String, val categoryColor: Color
-)
 data class RecentOrder(
     val imageResId: Int, val name: String, val price: String, val date: String, val status: String, val statusColor: Color
 )
 
-val dummyProgress = ProgressInfo(0.68f, 15, 8, 23)
+// Modern vibrant color palette
+object ModernColors {
+    val PrimaryBlue = Color(0xFF0EA5E9)
+    val PrimaryPurple = Color(0xFF8B5CF6)
+    val Coral = Color(0xFFFF6B6B)
+    val Emerald = Color(0xFF10B981)
+    val Yellow = Color(0xFFFBBF24)
+    val Pink = Color(0xFFEC4899)
+    val Orange = Color(0xFFF97316)
+    val Indigo = Color(0xFF6366F1)
+}
+
+// Dummy data
+val dummyProgress = ProgressInfo(0.75f, 24, 12, 38)
 val dummyBadges = listOf(
-    Badge(Icons.Default.Star, "Festival Enthusiast", "Attended 5 festivals", 100, Color(0xFFE0F2F1)),
-    Badge(Icons.Default.Place, "Monument Explorer", "Visited 10 heritage sites", 100, Color(0xFFE3F2FD))
-)
-val dummySavedItems = listOf(
-    SavedItem(R.drawable.ic_tajmahal, "Taj Mahal AR Tour", "Monument", Color(0xFFF44336))
+    Badge(Icons.Default.Star, "Festival Master", "Attended 10+ festivals", 100, ModernColors.Yellow),
+    Badge(Icons.Default.LocationOn, "Explorer", "Visited 20+ monuments", 85, ModernColors.Emerald),
+    Badge(Icons.Default.AddCircle, "Collector", "Bought 30+ crafts", 90, ModernColors.Coral)
 )
 val dummyOrders = listOf(
-    RecentOrder(R.drawable.ic_rajasthani_scarf, "Handwoven Banarasi Saree", "₹12,500", "2 days ago", "Delivered", Color(0xFF4CAF50))
+    RecentOrder(R.drawable.ic_rajasthani_scarf, "Silk Rajasthani Scarf", "₹2,850", "1 day ago", "Delivered", ModernColors.Emerald),
+    RecentOrder(R.drawable.ic_rajasthani_scarf, "Handcrafted Pottery", "₹1,200", "3 days ago", "Processing", ModernColors.Orange)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -87,50 +98,64 @@ fun ProfileScreen(
     val sheetState = rememberModalBottomSheetState()
     var showEditSheet by remember { mutableStateOf(false) }
 
-    // Show a loading screen or message if the user data isn't available yet
-    if (currentUser == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        return
-    }
+    // Animated gradient background
+    DynamicGradientBackground()
 
-    Box(
-        modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color(0xFFFFFDE7), Color(0xFFFFF8E1))))
-    ) {
-        Scaffold(
-            topBar = { ProfileTopAppBar(navController) },
-            containerColor = Color.Transparent
-        ) { padding ->
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(top = padding.calculateTopPadding(), start = 10.dp, end = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 80.dp)
-            ) {
-                item { UserInfoCard(user = currentUser!!, onEditClick = { showEditSheet = true }) }
-                item { ProgressTrackerCard(progress = dummyProgress) }
-                item { AchievementsSection(badges = dummyBadges) }
-                item { SavedItemsSection(items = dummySavedItems) }
-                item { RecentOrdersSection(orders = dummyOrders) }
-                item { SettingsSection() }
-                item {
-                    AccountActionsSection(
-                        onSignOut = {
-                            userViewModel.logout()
-                            sessionManager.navigateToAuth(navController)
-                        }
-                    )
+    Scaffold(
+        modifier = Modifier.systemBarsPadding(),
+        topBar = {
+            ModernTopBar(onBackClick = { navController.popBackStack() })
+        },
+        containerColor = Color.Transparent
+    ) { padding ->
+        if (currentUser == null) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = ModernColors.PrimaryBlue)
+            }
+            return@Scaffold
+        }
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp)
+        ) {
+            item {
+                ModernUserCard(
+                    user = currentUser!!,
+                    onEditClick = { showEditSheet = true }
+                )
+            }
+            item { ModernProgressCard(progress = dummyProgress) }
+            item { ModernAchievementsCard(badges = dummyBadges) }
+            item { ModernOrdersCard(orders = dummyOrders) }
+            item { ModernSettingsCard() }
+            item {
+                ModernSignOutCard {
+                    userViewModel.logout()
+                    sessionManager.navigateToAuth(navController)
                 }
             }
         }
 
-        // --- EDIT PROFILE BOTTOM SHEET ---
         if (showEditSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showEditSheet = false },
-                sheetState = sheetState
+                sheetState = sheetState,
+                containerColor = Color.White,
+                dragHandle = {
+                    Surface(
+                        modifier = Modifier
+                            .width(50.dp)
+                            .height(5.dp)
+                            .clip(RoundedCornerShape(10.dp)),
+                        color = Color.Gray.copy(alpha = 0.3f)
+                    ) {}
+                }
             ) {
-                EditProfileSheetContent(
+                ModernEditProfileSheet(
                     user = currentUser!!,
                     onSaveChanges = { uri, name, bio, gender ->
                         scope.launch {
@@ -140,16 +165,12 @@ fun ProfileScreen(
                                 val namePart = name.toRequestBody("text/plain".toMediaTypeOrNull())
                                 val bioPart = bio.toRequestBody("text/plain".toMediaTypeOrNull())
                                 val genderPart = gender.toRequestBody("text/plain".toMediaTypeOrNull())
-
                                 userViewModel.updateUserProfile(token, imagePart, namePart, bioPart, genderPart)
-                                Toast.makeText(context, "Profile updated!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Profile updated successfully! ✨", Toast.LENGTH_SHORT).show()
                                 sheetState.hide()
                             }
                         }.invokeOnCompletion {
-                            // ✅ CRITICAL FIX: The correct way to check for cancellation
-                            if (it !is CancellationException) {
-                                showEditSheet = false
-                            }
+                            showEditSheet = false
                         }
                     }
                 )
@@ -159,52 +180,626 @@ fun ProfileScreen(
 }
 
 @Composable
-fun UserInfoCard(user: User, onEditClick: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
+fun DynamicGradientBackground() {
+    val infiniteTransition = rememberInfiniteTransition(label = "bg_gradient")
+
+    val color1 by infiniteTransition.animateColor(
+        initialValue = Color(0xFF667eea),
+        targetValue = Color(0xFF764ba2),
+        animationSpec = infiniteRepeatable(
+            animation = tween(4000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = ""
+    )
+
+    val color2 by infiniteTransition.animateColor(
+        initialValue = Color(0xFF764ba2),
+        targetValue = Color(0xFFF093FB),
+        animationSpec = infiniteRepeatable(
+            animation = tween(6000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = ""
+    )
+
+    val color3 by infiniteTransition.animateColor(
+        initialValue = Color(0xFFF093FB),
+        targetValue = Color(0xFF667eea),
+        animationSpec = infiniteRepeatable(
+            animation = tween(5000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = ""
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(color1, color2, color3),
+                    startY = 0f,
+                    endY = Float.POSITIVE_INFINITY
+                )
+            )
+    )
+}
+
+@Composable
+fun ModernTopBar(onBackClick: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = Color.Transparent
     ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                onClick = onBackClick,
+                shape = CircleShape,
+                color = Color.White.copy(alpha = 0.2f),
+                modifier = Modifier
+                    .size(48.dp)
+                    .shadow(8.dp, CircleShape)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                "My Profile",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black,
+                color = Color.White,
+                fontSize = 28.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun ModernCard(
+    modifier: Modifier = Modifier,
+    backgroundColor: Color = Color.White,
+    content: @Composable () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 20.dp,
+                shape = RoundedCornerShape(24.dp),
+                ambientColor = Color.Black.copy(alpha = 0.1f),
+                spotColor = Color.Black.copy(alpha = 0.1f)
+            ),
+        shape = RoundedCornerShape(24.dp),
+        color = backgroundColor
+    ) {
+        content()
+    }
+}
+
+@Composable
+fun ModernUserCard(user: User, onEditClick: () -> Unit) {
+    ModernCard(backgroundColor = Color.White) {
         Column(
-            modifier = Modifier.padding(24.dp),
+            modifier = Modifier.padding(28.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box {
-                AsyncImage(
-                    model = user.profileImage,
-                    contentDescription = "Profile Picture",
-                    modifier = Modifier.size(80.dp).clip(CircleShape),
-                    contentScale = ContentScale.Crop,
-                    error = painterResource(id = R.drawable.ic_profile) // Fallback
-                )
-                Icon(
-                    Icons.Default.Edit,
-                    contentDescription = "Edit Profile",
-                    tint = Color.White,
+            Box(contentAlignment = Alignment.BottomEnd) {
+                // Profile image with rainbow border
+                Box(
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .size(28.dp)
-                        .background(MaterialTheme.colorScheme.primary, CircleShape)
-                        .padding(6.dp)
-                        .clickable(onClick = onEditClick)
-                )
+                        .size(120.dp)
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    ModernColors.Pink,
+                                    ModernColors.Orange,
+                                    ModernColors.Yellow,
+                                    ModernColors.Emerald,
+                                    ModernColors.PrimaryBlue,
+                                    ModernColors.PrimaryPurple
+                                )
+                            ),
+                            shape = CircleShape
+                        )
+                        .padding(4.dp)
+                ) {
+                    AsyncImage(
+                        model = user.profileImage,
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .background(Color.White),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+
+                // Edit button with gradient
+                Surface(
+                    onClick = onEditClick,
+                    shape = CircleShape,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .shadow(8.dp, CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(ModernColors.Pink, ModernColors.Orange)
+                            ),
+                            shape = CircleShape
+                        )
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.background(
+                            Brush.linearGradient(
+                                colors = listOf(ModernColors.Pink, ModernColors.Orange)
+                            )
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Edit Profile",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(user.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
-            Text(user.bio ?: "No bio yet.", color = Color.Gray, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                InfoRow(icon = Icons.Default.LocationOn, text = "Mumbai, India") // Placeholder
-                InfoRow(icon = Icons.Default.Star, text = "Joined ${user.createdAt.take(10)}")
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Text(
+                user.name,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black,
+                color = Color(0xFF1F2937)
+            )
+
+            Text(
+                user.bio ?: "Cultural Explorer 🎭",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color(0xFF6B7280),
+                fontWeight = FontWeight.Medium
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Status badge
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = ModernColors.Emerald.copy(alpha = 0.1f),
+                border = BorderStroke(1.dp, ModernColors.Emerald.copy(alpha = 0.3f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(ModernColors.Emerald, CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Active Explorer",
+                        color = ModernColors.Emerald,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                }
             }
         }
     }
 }
 
+@Composable
+fun ModernProgressCard(progress: ProgressInfo) {
+    ModernCard(backgroundColor = Color.White) {
+        Column(modifier = Modifier.padding(24.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Level Progress",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFF1F2937)
+                )
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = ModernColors.PrimaryBlue.copy(alpha = 0.1f)
+                ) {
+                    Text(
+                        "${(progress.levelProgress * 100).toInt()}%",
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        color = ModernColors.PrimaryBlue,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 16.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Animated progress bar
+            LinearProgressIndicator(
+                progress = { progress.levelProgress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(12.dp)
+                    .clip(RoundedCornerShape(6.dp)),
+                color = ModernColors.PrimaryBlue,
+                trackColor = Color(0xFFF3F4F6),
+                strokeCap = StrokeCap.Round
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Stats row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                ModernStatCard(
+                    count = progress.sitesVisited,
+                    label = "Sites",
+                    icon = Icons.Default.LocationOn,
+                    color = ModernColors.Coral
+                )
+                ModernStatCard(
+                    count = progress.festivalsAttended,
+                    label = "Festivals",
+                    icon = Icons.Default.AddCircle,
+                    color = ModernColors.Yellow
+                )
+                ModernStatCard(
+                    count = progress.craftsBought,
+                    label = "Crafts",
+                    icon = Icons.Default.AddCircle,
+                    color = ModernColors.Emerald
+                )
+            }
+        }
+    }
+}
 
 @Composable
-fun EditProfileSheetContent(user: User, onSaveChanges: (Uri?, String, String, String) -> Unit) {
+fun ModernStatCard(count: Int, label: String, icon: ImageVector, color: Color) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = color.copy(alpha = 0.1f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.2f)),
+        modifier = Modifier.size(width = 90.dp, height = 80.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                icon,
+                contentDescription = label,
+                tint = color,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                count.toString(),
+                fontWeight = FontWeight.Black,
+                color = color,
+                fontSize = 18.sp
+            )
+            Text(
+                label,
+                color = color.copy(alpha = 0.7f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+fun ModernAchievementsCard(badges: List<Badge>) {
+    ModernCard(backgroundColor = Color.White) {
+        Column(modifier = Modifier.padding(24.dp)) {
+            Text(
+                "Achievements",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Black,
+                color = Color(0xFF1F2937)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                badges.forEach { badge ->
+                    ModernBadgeCard(badge, modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ModernBadgeCard(badge: Badge, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.height(140.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = badge.color.copy(alpha = 0.1f),
+        border = BorderStroke(1.dp, badge.color.copy(alpha = 0.2f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = badge.color,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        badge.icon,
+                        contentDescription = badge.title,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                badge.title,
+                fontWeight = FontWeight.Bold,
+                color = badge.color,
+                fontSize = 12.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Text(
+                "${badge.progress}%",
+                color = badge.color.copy(alpha = 0.7f),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+fun ModernOrdersCard(orders: List<RecentOrder>) {
+    ModernCard(backgroundColor = Color.White) {
+        Column(modifier = Modifier.padding(24.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Recent Orders",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFF1F2937)
+                )
+                TextButton(onClick = { /* TODO */ }) {
+                    Text(
+                        "View All",
+                        color = ModernColors.PrimaryBlue,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            orders.forEach { order ->
+                ModernOrderRow(order)
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun ModernOrderRow(order: RecentOrder) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = Color(0xFFF9FAFB),
+        border = BorderStroke(1.dp, Color(0xFFE5E7EB))
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.size(50.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = order.imageResId),
+                    contentDescription = order.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    order.name,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1F2937),
+                    fontSize = 14.sp
+                )
+                Text(
+                    order.price,
+                    color = ModernColors.PrimaryBlue,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
+            }
+
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = order.statusColor.copy(alpha = 0.1f)
+            ) {
+                Text(
+                    order.status,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    color = order.statusColor,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ModernSettingsCard() {
+    ModernCard(backgroundColor = Color.White) {
+        Column(modifier = Modifier.padding(24.dp)) {
+            Text(
+                "Settings",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Black,
+                color = Color(0xFF1F2937)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ModernSettingRow(
+                icon = Icons.Default.Notifications,
+                title = "Push Notifications",
+                subtitle = "Festival alerts & cultural updates",
+                color = ModernColors.Orange
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            ModernSettingRow(
+                icon = Icons.Default.LocationOn,
+                title = "Location Services",
+                subtitle = "Find nearby cultural events",
+                color = ModernColors.Emerald
+            )
+        }
+    }
+}
+
+@Composable
+fun ModernSettingRow(icon: ImageVector, title: String, subtitle: String, color: Color) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = Color(0xFFF9FAFB)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = color.copy(alpha = 0.1f),
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        icon,
+                        contentDescription = title,
+                        tint = color,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    title,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1F2937),
+                    fontSize = 14.sp
+                )
+                Text(
+                    subtitle,
+                    color = Color(0xFF6B7280),
+                    fontSize = 12.sp
+                )
+            }
+
+            var checked by remember { mutableStateOf(true) }
+            Switch(
+                checked = checked,
+                onCheckedChange = { checked = it },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = color,
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = Color(0xFFD1D5DB)
+                )
+            )
+        }
+    }
+}
+
+@Composable
+fun ModernSignOutCard(onSignOut: () -> Unit) {
+    Surface(
+        onClick = onSignOut,
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White,
+        border = BorderStroke(2.dp, Color(0xFFEF4444)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 15.dp,
+                shape = RoundedCornerShape(24.dp)
+            )
+    ) {
+        Row(
+            modifier = Modifier.padding(24.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.ExitToApp,
+                contentDescription = "Sign Out",
+                tint = Color(0xFFEF4444),
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                "Sign Out",
+                color = Color(0xFFEF4444),
+                fontWeight = FontWeight.Black,
+                fontSize = 18.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun ModernEditProfileSheet(
+    user: User,
+    onSaveChanges: (Uri?, String, String, String) -> Unit
+) {
     val context = LocalContext.current
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var name by remember { mutableStateOf(user.name) }
@@ -220,44 +815,168 @@ fun EditProfileSheetContent(user: User, onSaveChanges: (Uri?, String, String, St
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(24.dp)
             .navigationBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Edit Your Profile", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text(
+            "Edit Profile ✨",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Black,
+            color = Color(0xFF1F2937)
+        )
+
         Spacer(modifier = Modifier.height(24.dp))
 
-        Box(modifier = Modifier.clickable { galleryLauncher.launch("image/*") }) {
-            AsyncImage(
-                model = selectedImageUri ?: user.profileImage,
-                contentDescription = "Profile Picture",
-                modifier = Modifier.size(100.dp).clip(CircleShape),
-                contentScale = ContentScale.Crop,
-                error = painterResource(id = R.drawable.ic_profile)
-            )
-            Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.align(Alignment.Center), tint = Color.White)
+        // Profile image with gradient border
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.clickable { galleryLauncher.launch("image/*") }
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(ModernColors.Pink, ModernColors.PrimaryBlue)
+                        ),
+                        shape = CircleShape
+                    )
+                    .padding(3.dp)
+            ) {
+                AsyncImage(
+                    model = selectedImageUri ?: user.profileImage,
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                        .background(Color.White),
+                    contentScale = ContentScale.Crop,
+                    error = painterResource(id = R.drawable.ic_profile)
+                )
+            }
+
+            Surface(
+                shape = CircleShape,
+                color = ModernColors.PrimaryBlue,
+                modifier = Modifier
+                    .size(30.dp)
+                    .align(Alignment.BottomEnd)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
         }
-        Spacer(modifier = Modifier.height(24.dp))
-
-        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(16.dp))
-        OutlinedTextField(value = bio, onValueChange = { bio = it }, label = { Text("Bio") }, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(16.dp))
-        OutlinedTextField(value = gender, onValueChange = { gender = it }, label = { Text("Gender") }, modifier = Modifier.fillMaxWidth())
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        // Input fields with modern styling
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Full Name") },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = ModernColors.PrimaryBlue,
+                focusedLabelColor = ModernColors.PrimaryBlue,
+                cursorColor = ModernColors.PrimaryBlue
+            )
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = bio,
+            onValueChange = { bio = it },
+            label = { Text("Bio") },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            maxLines = 3,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = ModernColors.Emerald,
+                focusedLabelColor = ModernColors.Emerald,
+                cursorColor = ModernColors.Emerald
+            )
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = gender,
+            onValueChange = { gender = it },
+            label = { Text("Gender") },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = ModernColors.Pink,
+                focusedLabelColor = ModernColors.Pink,
+                cursorColor = ModernColors.Pink
+            )
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Save button with gradient
         Button(
             onClick = { onSaveChanges(selectedImageUri, name, bio, gender) },
-            modifier = Modifier.fillMaxWidth().height(50.dp),
-            enabled = !isUpdating
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .shadow(
+                    elevation = 12.dp,
+                    shape = RoundedCornerShape(16.dp)
+                ),
+            enabled = !isUpdating,
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Transparent
+            )
         ) {
-            if (isUpdating) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-            } else {
-                Text("Save Changes")
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(ModernColors.PrimaryBlue, ModernColors.PrimaryPurple)
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isUpdating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.White
+                    )
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.AddCircle,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Save Changes",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
@@ -272,312 +991,3 @@ private fun uriToMultipartBody(context: Context, uri: Uri, partName: String): Mu
         null
     }
 }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ProfileTopAppBar(navController: NavHostController) {
-    TopAppBar(
-        title = {
-            Column {
-                Text("My Profile", fontWeight = FontWeight.Bold , color = Color.Black)
-                Text("Cultural journey dashboard", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-            }
-        },
-        navigationIcon = {
-            IconButton(onClick = { navController.popBackStack() }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back" , tint = Color.Black)
-            }
-        },
-        actions = {
-            IconButton(onClick = {}) { Icon(Icons.Default.Settings, contentDescription = "Settings" , tint = Color.Black) }
-            IconButton(onClick = {}) { Icon(Icons.Default.Share, contentDescription = "Share" , tint = Color.Black) }
-        },
-        windowInsets = WindowInsets(0),
-        modifier = Modifier.height(56.dp),
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-    )
-}
-
-@Composable
-fun AccountActionsSection(onSignOut: () -> Unit) {
-    Section(title = "Account Actions") {
-        OutlinedButton(
-            onClick = onSignOut,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.5f))
-        ) {
-            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Sign Out", tint = Color.Red)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Sign Out", color = Color.Red, fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-@Composable
-fun ProgressTrackerCard(progress: ProgressInfo) {
-    Section(title = "Progress Tracker") {
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.7f))
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                    Text("Level Progress", fontWeight = FontWeight.Bold)
-                    Text("${(progress.levelProgress * 100).toInt()}% to Heritage Guru", color = Color.Gray, fontSize = 12.sp)
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                LinearProgressIndicator(
-                    progress = { progress.levelProgress },
-                    color = Color(0xFFFF5722),
-                    trackColor = Color.Black.copy(alpha = 0.1f),
-                    modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(50))
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                    ProgressStat(count = progress.sitesVisited, label = "Sites Visited", color = Color(0xFFD32F2F))
-                    ProgressStat(count = progress.festivalsAttended, label = "Festivals", color = Color(0xFF1976D2))
-                    ProgressStat(count = progress.craftsBought, label = "Crafts Bought", color = Color(0xFF388E3C))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun AchievementsSection(badges: List<Badge>) {
-    Section(title = "Achievements & Badges") {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            badges.chunked(2).forEach { rowItems ->
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    rowItems.forEach { badge ->
-                        BadgeCard(badge = badge, modifier = Modifier.weight(1f))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun SavedItemsSection(items: List<SavedItem>) {
-    Section(title = "Saved Items", action = { TextChip("${items.size} items") }) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items.forEach { item ->
-                SavedItemRow(item)
-            }
-        }
-    }
-}
-
-@Composable
-fun RecentOrdersSection(orders: List<RecentOrder>) {
-    Section(title = "Recent Orders", action = {
-        TextButton(onClick = { /*TODO*/ }) {
-            Text("View All")
-        }
-    }) {
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.7f))
-        ) {
-            Column {
-                orders.forEachIndexed { index, order ->
-                    OrderRow(order)
-                    if (index < orders.lastIndex) {
-                        Divider(color = Color.Black.copy(alpha = 0.05f))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun SettingsSection() {
-    Section(title = "Settings") {
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.7f))
-        ) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Language", fontWeight = FontWeight.Bold)
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    LanguageChip("English", true)
-                    LanguageChip("हिन्दी", false)
-                    LanguageChip("தமிழ்", false)
-                }
-                Divider(color = Color.Black.copy(alpha = 0.05f))
-                SettingRow(icon = Icons.Default.Notifications, title = "Notifications", subtitle = "Festival alerts & updates")
-                Divider(color = Color.Black.copy(alpha = 0.05f))
-                SettingRow(icon = Icons.Default.Lock, title = "Privacy & Security", subtitle = "Manage your data preferences", showToggle = false)
-            }
-        }
-    }
-}
-
-@Composable
-fun Section(
-    title: String,
-    modifier: Modifier = Modifier,
-    action: (@Composable () -> Unit)? = null,
-    content: @Composable () -> Unit
-) {
-    Column(
-        modifier = modifier.padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            if (action != null) {
-                action()
-            }
-        }
-        content()
-    }
-}
-
-@Composable
-fun BadgeCard(badge: Badge, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = badge.color.copy(alpha = 0.7f)),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.5f))
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-                Icon(badge.icon, contentDescription = badge.title, modifier = Modifier.size(28.dp))
-                if (badge.progress == 100) {
-                    TextChip("Earned", Color(0xFF388E3C))
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(badge.title, fontWeight = FontWeight.Bold)
-            Text(badge.description, fontSize = 12.sp, color = Color.Gray)
-            if (badge.progress < 100) {
-                Spacer(modifier = Modifier.height(8.dp))
-                LinearProgressIndicator(
-                    progress = { badge.progress / 100f },
-                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
-                    trackColor = Color.Black.copy(alpha = 0.1f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun SavedItemRow(item: SavedItem) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.7f))
-    ) {
-        Row(modifier = Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Image(
-                painter = painterResource(id = item.imageResId),
-                contentDescription = item.title,
-                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(item.title, fontWeight = FontWeight.Bold)
-                TextChip(item.category, item.categoryColor, small = true)
-            }
-            Icon(Icons.Default.Favorite, contentDescription = "Favorited", tint = Color.Red)
-        }
-    }
-}
-
-@Composable
-fun OrderRow(order: RecentOrder) {
-    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-        Image(
-            painter = painterResource(id = order.imageResId),
-            contentDescription = order.name,
-            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)),
-            contentScale = ContentScale.Crop
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(order.name, fontWeight = FontWeight.Bold)
-            Text(order.price, color = Color.Gray, fontSize = 12.sp)
-            Text(order.date, color = Color.Gray, fontSize = 12.sp)
-        }
-        TextChip(order.status, order.statusColor)
-    }
-}
-
-@Composable
-fun SettingRow(icon: ImageVector, title: String, subtitle: String, showToggle: Boolean = true) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = title, modifier = Modifier.size(24.dp))
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.Bold)
-            Text(subtitle, color = Color.Gray, fontSize = 12.sp)
-        }
-        if (showToggle) {
-            var checked by remember { mutableStateOf(true) }
-            Switch(checked = checked, onCheckedChange = { checked = it })
-        } else {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Navigate", modifier = Modifier.size(16.dp))
-        }
-    }
-}
-
-
-@Composable
-fun ProgressStat(count: Int, label: String, color: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(count.toString(), color = color, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
-        Text(label, color = Color.Gray, fontSize = 12.sp)
-    }
-}
-
-@Composable
-fun TextChip(text: String, color: Color = Color.Gray, small: Boolean = false) {
-    Text(
-        text = text,
-        color = color,
-        fontSize = if (small) 10.sp else 12.sp,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier
-            .background(color.copy(alpha = 0.1f), RoundedCornerShape(50))
-            .padding(horizontal = if (small) 8.dp else 12.dp, vertical = if (small) 4.dp else 6.dp)
-    )
-}
-
-@Composable
-fun LanguageChip(lang: String, isSelected: Boolean) {
-    Text(
-        text = lang,
-        textAlign = TextAlign.Center,
-        modifier = Modifier
-            .border(
-                1.dp,
-                if (isSelected) MaterialTheme.colorScheme.primary else Color.LightGray,
-                RoundedCornerShape(8.dp)
-            )
-            .background(
-                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent,
-                RoundedCornerShape(8.dp)
-            )
-            .padding(12.dp)
-    )
-}
-
-@Composable
-fun InfoRow(icon: ImageVector, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.Gray)
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(text, fontSize = 12.sp, color = Color.Gray)
-    }
-}
-

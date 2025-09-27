@@ -73,7 +73,7 @@ private val topBarBrush = Brush.verticalGradient(listOf(Color(0xFFFFD180), Color
 // --- ✅ UPDATED DATA SOURCE (REMOVED AZADI CHAT FROM QUICK ACTIONS) ---
 val quickActions = listOf(
     QuickAction("AR Scan", "Scan monuments", R.drawable.ic_scan, Screen.ARScanAction.route, listOf(Color(0xFF26A69A), Color(0xFF00796B))),
-    QuickAction("Azadi Chat", "Chat With Leaders", R.drawable.ic_chatbot, Screen.AzadiChat.route, listOf(Color(0xFFEC407A), Color(0xFFD81B60)))
+    QuickAction("Azadi Chat", "Chat With Leaders", R.drawable.leader, Screen.AzadiChat.route, listOf(Color(0xFFEC407A), Color(0xFFD81B60)))
 
 )
 
@@ -87,7 +87,7 @@ val exploreItems = listOf(
 val upcomingEventsAction = QuickAction(
     "Upcoming Events",
     "Discover what's happening",
-    R.drawable.ic_calendar, // You can use a different icon if preferred
+    R.drawable.event, // You can use a different icon if preferred
     "", // No navigation route yet
     listOf(Color(0xFFFF6B35), Color(0xFFFF8E53))
 )
@@ -170,11 +170,11 @@ fun HomeScreen(
                     color = Color.White.copy(alpha = 0.4f),
                     shape = CircleShape
                 ),
-            containerColor = Color(0x66FFFFFF), // semi-transparent purple
+            containerColor = Color(0xFFD9B24D), // semi-transparent purple
             shape = CircleShape
         ) {
             Image(
-                painter = painterResource(id = R.drawable.ic_chatbot_avatar),
+                painter = painterResource(id = R.drawable.chatbot),
                 contentDescription = "Open Chatbot",
                 modifier = Modifier.size(32.dp)
             )
@@ -399,7 +399,7 @@ fun MainTopAppBar(navController: NavController, userName: String?, profileImageU
                     Icon(
                         painter = painterResource(id = R.drawable.ic_calendar),
                         contentDescription = "Calendar",
-                        tint = Color.White.copy(alpha = 0.9f),
+                        tint = Color.Black.copy(alpha = 0.9f),
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -480,30 +480,30 @@ fun UpcomingEventsCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(100.dp) // Slightly taller for full-width design
+            .height(100.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(6.dp)
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Brush.horizontalGradient(action.gradientColors)) // Horizontal gradient for wide card
+            modifier = Modifier.fillMaxSize()
         ) {
-            // Decorative background elements
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset(x = 30.dp, y = (-20).dp)
-                    .size(120.dp)
-                    .background(
-                        brush = Brush.radialGradient(
-                            colors = listOf(Color.White.copy(alpha = 0.2f), Color.Transparent)
-                        ),
-                        shape = CircleShape
-                    )
+            // 🔹 Background image instead of gradient
+            Image(
+                painter = painterResource(id = R.drawable.ic_back_event),
+                contentDescription = null,
+                contentScale = ContentScale.Crop, // Crop to fill card nicely
+                modifier = Modifier.fillMaxSize()
             )
 
+            // Optional overlay to improve text visibility
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f)) // translucent overlay
+            )
+
+            // 🔹 Foreground content (text + icon)
             Row(
                 modifier = Modifier
                     .fillMaxSize()
@@ -511,7 +511,6 @@ fun UpcomingEventsCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Left side - Text content
                 Column {
                     Text(
                         text = action.title,
@@ -527,7 +526,6 @@ fun UpcomingEventsCard(
                     )
                 }
 
-                // Right side - Icon
                 Image(
                     painter = painterResource(id = action.icon),
                     contentDescription = null,
@@ -537,6 +535,7 @@ fun UpcomingEventsCard(
         }
     }
 }
+
 
 
 @Composable
