@@ -1,5 +1,6 @@
 package com.example.richculture.screens
 
+import android.widget.Space
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -56,26 +58,18 @@ fun HeaderSection(navController: NavController) {
             .fillMaxWidth()
             .height(220.dp)
             .background(headerBrush, shape = RoundedCornerShape(bottomStart = 48.dp, bottomEnd = 48.dp))
+            .statusBarsPadding()
     ) {
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = { navController.popBackStack() }, modifier = Modifier.background(Color.White.copy(0.2f), CircleShape)) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                 }
+                Spacer(modifier = Modifier.padding(start = 10.dp))
                 Text("Azadi Chat", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                Row {
-                    IconButton(onClick = {}, modifier = Modifier.background(Color.White.copy(0.2f), CircleShape)) {
-                        Icon(Icons.Default.AddCircle, contentDescription = "History", tint = Color.White)
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    IconButton(onClick = {}, modifier = Modifier.background(Color.White.copy(0.2f), CircleShape)) {
-                        Icon(Icons.Default.AddCircle, contentDescription = "Trending", tint = Color.White)
-                    }
-                }
             }
             Spacer(modifier = Modifier.height(16.dp))
             Card(
@@ -86,7 +80,7 @@ fun HeaderSection(navController: NavController) {
             ) {
                 Text(
                     "💫 Connect with India's greatest leaders and learn from their wisdom, courage, and sacrifice.",
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(12.dp),
                     color = Color.White
                 )
             }

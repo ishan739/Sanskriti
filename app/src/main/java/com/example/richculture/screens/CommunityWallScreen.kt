@@ -124,13 +124,23 @@ fun CommunityWallScreen(
         )
     }
 
-    Scaffold(topBar = { CommunityTopAppBar(navController) }, containerColor = Color(0xFFF0F2F5)) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding).pullRefresh(pullRefreshState)) {
+    Scaffold(
+        topBar = { CommunityTopAppBar(navController) },
+        containerColor = Color(0xFFF8F9FA) // Light modern background
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .statusBarsPadding() // Add status bar padding
+                .pullRefresh(pullRefreshState)
+        ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+
                 item {
                     MemoriesContent(
                         navController = navController,
@@ -147,7 +157,12 @@ fun CommunityWallScreen(
                     )
                 }
             }
-            PullRefreshIndicator(refreshing = isRefreshing, state = pullRefreshState, modifier = Modifier.align(Alignment.TopCenter), contentColor = MaterialTheme.colorScheme.primary)
+            PullRefreshIndicator(
+                refreshing = isRefreshing,
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter),
+                contentColor = Color(0xFF6C63FF)
+            )
         }
     }
 }
@@ -161,29 +176,64 @@ fun MemoriesContent(
     onPostClicked: (PostResponse) -> Unit,
     currentUserId: String
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (isUserLoggedIn) {
+            // Modern share button matching the image
             Button(
                 onClick = { navController.navigate(Screen.CreatePost.route) },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(28.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF6C63FF)
+                )
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Share", tint = Color.White)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Share Your Memory", color = Color.White, fontWeight = FontWeight.Bold)
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Share",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    "Share Your Memory",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp
+                )
             }
         }
+
         when {
             posts == null -> {}
             posts.isEmpty() -> {
-                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text("No memories shared yet. Be the first!", color = Color.Gray)
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_recipe),
+                            contentDescription = "No memories",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "No memories shared yet",
+                            color = Color.Gray,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            "Be the first to share!",
+                            color = Color.Gray.copy(alpha = 0.7f),
+                            fontSize = 14.sp
+                        )
+                    }
                 }
             }
             else -> {
                 posts.forEach { post ->
-                    MemoryPostCard(
+                    ModernMemoryPostCard(
                         post = post,
                         currentUserId = currentUserId,
                         onLikeClicked = { onLike(post._id) },
@@ -195,8 +245,9 @@ fun MemoriesContent(
     }
 }
 
+
 @Composable
-fun MemoryPostCard(
+fun ModernMemoryPostCard(
     post: PostResponse,
     currentUserId: String,
     onLikeClicked: () -> Unit,
@@ -207,42 +258,193 @@ fun MemoryPostCard(
     val scope = rememberCoroutineScope()
 
     Card(
-        modifier = Modifier.clickable(onClick = onCardClicked),
-        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onCardClicked),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(1.dp)
+        elevation = CardDefaults.cardElevation(3.dp)
     ) {
         Column {
-            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                AsyncImage(model = post.author?.profileImage, contentDescription = "Profile", modifier = Modifier.size(40.dp).clip(CircleShape), contentScale = ContentScale.Crop, error = painterResource(id = R.drawable.ic_profile))
+            // Profile header
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AsyncImage(
+                    model = post.author?.profileImage,
+                    contentDescription = "Profile",
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF6C63FF).copy(alpha = 0.1f)), // Colored background for profile pics
+                    contentScale = ContentScale.Crop,
+                    error = painterResource(id = R.drawable.ic_profile)
+                )
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
-                    Text(post.author?.name ?: "Unknown User", fontWeight = FontWeight.Bold)
-                    Text(post.location ?: "", fontSize = 12.sp, color = Color.Gray)
+                    Text(
+                        post.author?.name ?: "Unknown User",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color(0xFF1A1A1A)
+                    )
+                    Text(
+                        post.location ?: "",
+                        fontSize = 13.sp,
+                        color = Color.Gray
+                    )
                 }
             }
-            AsyncImage(model = post.media, contentDescription = post.caption, modifier = Modifier.fillMaxWidth().height(400.dp), contentScale = ContentScale.Crop)
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                Text(post.caption ?: "", fontWeight = FontWeight.SemiBold)
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.CenterVertically) {
-                    PostActionButton(icon = if (isLiked) painterResource(id = R.drawable.ic_like_filled) else painterResource(id = R.drawable.ic_like), text = "${post.likes.size}", onClick = onLikeClicked, tint = if (isLiked) Color.Red else Color.Gray)
-                    PostActionButton(icon = painterResource(id = R.drawable.ic_comment), text = "${post.comments.size}", onClick = onCardClicked)
-                    PostActionButton(icon = painterResource(id = R.drawable.ic_share), text = "Share", onClick = {
-                        scope.launch {
-                            val bitmap = context.getImageBitmapFromUrl(post.media)
-                            if (bitmap != null) {
-                                context.shareImageAndText(bitmap, "${post.caption}\n\nShared from Sanskriti App")
-                            } else {
-                                Toast.makeText(context, "Could not share image.", Toast.LENGTH_SHORT).show()
+
+            // Image
+            AsyncImage(
+                model = post.media,
+                contentDescription = post.caption,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(400.dp),
+                contentScale = ContentScale.Crop
+            )
+
+            // Content and actions
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    post.caption ?: "",
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 15.sp,
+                    color = Color(0xFF2D2D2D),
+                    lineHeight = 22.sp
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ModernActionButton(
+                        icon = if (isLiked) painterResource(id = R.drawable.ic_like_filled) else painterResource(id = R.drawable.ic_like),
+                        text = "${post.likes.size}",
+                        onClick = onLikeClicked,
+                        tint = if (isLiked) Color(0xFFFF4757) else Color.Gray
+                    )
+                    ModernActionButton(
+                        icon = painterResource(id = R.drawable.ic_comment),
+                        text = "${post.comments.size}",
+                        onClick = onCardClicked
+                    )
+                    ModernActionButton(
+                        icon = painterResource(id = R.drawable.ic_share),
+                        text = "Share",
+                        onClick = {
+                            scope.launch {
+                                val bitmap = context.getImageBitmapFromUrl(post.media)
+                                if (bitmap != null) {
+                                    context.shareImageAndText(bitmap, "${post.caption}\n\nShared from Sanskriti App")
+                                } else {
+                                    Toast.makeText(context, "Could not share image.", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         }
-                    })
+                    )
                 }
+
                 if (post.comments.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     CommentPreview(post.comments.first())
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ModernActionButton(
+    icon: Painter,
+    text: String,
+    onClick: (() -> Unit)? = null,
+    tint: Color = Color.Gray
+) {
+    val modifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = modifier
+    ) {
+        Icon(
+            icon,
+            contentDescription = text,
+            tint = tint,
+            modifier = Modifier.size(22.dp)
+        )
+        Text(
+            text,
+            color = Color.Gray,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+// Updated Modern Top App Bar
+@Composable
+fun CommunityTopAppBar(navController: NavController) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+    ) {
+        // Modern gradient background
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF667eea),
+                            Color(0xFF764ba2)
+                        )
+                    ),
+                    shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
+                )
+        )
+
+        // Content
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .statusBarsPadding(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = { navController.popBackStack() },
+                modifier = Modifier
+                    .background(Color.White.copy(alpha = 0.2f), CircleShape)
+                    .size(44.dp)
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column {
+                Text(
+                    "Community Hub",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp
+                )
+                Text(
+                    "Share memories & discover recipes",
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 14.sp
+                )
             }
         }
     }
@@ -300,6 +502,9 @@ fun PostDetailDialog(
         }
     }
 }
+
+
+
 
 @Composable
 fun CommentPreview(comment: Comment) {
@@ -394,23 +599,6 @@ fun Bitmap.saveToCache(context: Context): Uri? {
     } catch (e: Exception) {
         e.printStackTrace()
         null
-    }
-}
-
-@Composable
-fun CommunityTopAppBar(navController: NavController) {
-    Box {
-        Spacer(modifier = Modifier.fillMaxWidth().height(110.dp).background(Brush.verticalGradient(listOf(Color(0xFF81C784), Color(0xFF2E7D32))), shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)))
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { navController.popBackStack() }, modifier = Modifier.background(Color.White.copy(alpha = 0.2f), CircleShape)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text("Community Hub 🌏", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                Text("Share memories & discover recipes", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
-            }
-        }
     }
 }
 

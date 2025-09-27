@@ -730,33 +730,43 @@ fun ImmersiveMonumentDetails(
     onClose: () -> Unit
 ) {
     val context = LocalContext.current
-    val images = listOf(monument.cover, monument.furl, monument.surl, monument.turl).filter { it.isNotBlank() }
-    val pagerState = rememberPagerState(pageCount = { images.size })
+    // Separate cover photo from museum photos
+    val museumImages = listOf(monument.furl, monument.surl, monument.turl).filter { it.isNotBlank() }
+    val museumPagerState = rememberPagerState(pageCount = { museumImages.size })
 
-    // ✅ FIX: The entire content is now in a single scrollable Column
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        // --- Image Gallery ---
+        // --- Cover Image Section ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(400.dp) // The pager now has a defined height, fixing the swipe
+                .height(400.dp)
         ) {
-            HorizontalPager(
-                state = pagerState,
+            AsyncImage(
+                model = monument.cover,
+                contentDescription = monument.name,
+                contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
-            ) { page ->
-                AsyncImage(
-                    model = images[page],
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-            Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.3f), Color.Black.copy(alpha = 0.8f)), startY = 200f)))
+            )
+
+            // Gradient overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.3f),
+                                Color.Black.copy(alpha = 0.8f)
+                            ),
+                            startY = 200f
+                        )
+                    )
+            )
 
             // --- Top Controls ---
             Row(
@@ -766,56 +776,151 @@ fun ImmersiveMonumentDetails(
                     .padding(16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                IconButton(onClick = onClose, modifier = Modifier.size(44.dp).background(Color.Black.copy(alpha = 0.3f), CircleShape)) {
+                IconButton(
+                    onClick = onClose,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                ) {
                     Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
                 }
                 IconButton(
                     onClick = {
                         try {
                             val gmmIntentUri = Uri.parse("geo:0,0?q=${Uri.encode(monument.name)}")
-                            val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri).apply { setPackage("com.google.android.apps.maps") }
+                            val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri).apply {
+                                setPackage("com.google.android.apps.maps")
+                            }
                             context.startActivity(mapIntent)
                         } catch (e: ActivityNotFoundException) {
                             Toast.makeText(context, "Google Maps is not installed.", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    modifier = Modifier.size(44.dp).background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(Color.Black.copy(alpha = 0.3f), CircleShape)
                 ) {
-                    Icon(painter = painterResource(id = R.drawable.ic_map), contentDescription = "Open in Maps", tint = Color.White)
-                }
-            }
-
-            // --- Pager Indicator ---
-            if (images.size > 1) {
-                Row(
-                    Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    repeat(images.size) { iteration ->
-                        val isSelected = pagerState.currentPage == iteration
-                        Box(modifier = Modifier.clip(CircleShape).background(if (isSelected) Color.White else Color.White.copy(alpha = 0.5f)).size(if (isSelected) 8.dp else 6.dp).animateContentSize())
-                    }
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_map),
+                        contentDescription = "Open in Maps",
+                        tint = Color.White
+                    )
                 }
             }
         }
 
-        // --- Text Content Below Image ---
+        // --- Monument Information Text Content ---
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(monument.name, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E))
+            Text(
+                text = monument.name,
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1A1A2E)
+            )
+
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+                Icon(
+                    Icons.Default.LocationOn,
+                    contentDescription = null,
+                    tint = Color.Gray,
+                    modifier = Modifier.size(16.dp)
+                )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text(monument.location, color = Color.Gray, fontSize = 14.sp)
+                Text(
+                    text = monument.location,
+                    color = Color.Gray,
+                    fontSize = 14.sp
+                )
             }
+
             Divider()
-            Text("About this Monument", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E))
-            Text(monument.description, style = MaterialTheme.typography.bodyLarge, color = Color.DarkGray, lineHeight = 24.sp)
+
+            Text(
+                text = "About this Monument",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1A1A2E)
+            )
+
+            Text(
+                text = monument.description,
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.DarkGray,
+                lineHeight = 24.sp
+            )
         }
+
+        // --- Museum Section ---
+        if (museumImages.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Divider()
+
+                Text(
+                    text = "Museum",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1A1A2E)
+                )
+
+                // Museum Image Gallery
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                ) {
+                    HorizontalPager(
+                        state = museumPagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { page ->
+                        AsyncImage(
+                            model = museumImages[page],
+                            contentDescription = "Museum image ${page + 1}",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(16.dp))
+                        )
+                    }
+
+                    // Museum Pager Indicator
+                    if (museumImages.size > 1) {
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            repeat(museumImages.size) { iteration ->
+                                val isSelected = museumPagerState.currentPage == iteration
+                                Box(
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (isSelected) Color.White
+                                            else Color.White.copy(alpha = 0.5f)
+                                        )
+                                        .size(if (isSelected) 8.dp else 6.dp)
+                                        .animateContentSize()
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Add some bottom padding for better scrolling experience
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
-

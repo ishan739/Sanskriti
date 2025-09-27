@@ -74,7 +74,7 @@ fun NavigationGraph(
                     Screen.Home -> HomeScreen(navController)
                     Screen.Stories -> StoriesScreen(navController)
                     Screen.Bazaar -> BazaarScreen(navController)
-                    Screen.Chatbot -> ChatbotScreen(navController)
+//                    Screen.Chatbot -> ChatbotScreen(navController)
                     Screen.Profile -> ProfileScreen(navController)
                     Screen.Order -> CartScreen(navController)
                     Screen.HeritageExplorer -> HeritageExplorerScreen(navController)

@@ -91,7 +91,7 @@ fun ArScanScreen(
     )
 
     Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F7FC))) {
-        LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 20.dp)) {
+        LazyColumn(modifier = Modifier.fillMaxSize().statusBarsPadding(), contentPadding = PaddingValues(bottom = 20.dp)) {
             item { ArScanHeader() }
             item {
                 Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -116,7 +116,7 @@ fun ArScanScreen(
         }
         IconButton(
             onClick = { navController.popBackStack() },
-            modifier = Modifier.align(Alignment.TopStart).padding(16.dp).background(Color.Black.copy(alpha = 0.2f), CircleShape)
+            modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().background(Color.Black.copy(alpha = 0.2f), CircleShape)
         ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White) }
 
         AnimatedVisibility(
@@ -288,10 +288,10 @@ fun SelectedImagePreview(
 @Composable
 fun ArScanHeader() {
     Box(
-        modifier = Modifier.fillMaxWidth().clip(BottomArcShapeArScan(arcHeight = 32.dp))
+        modifier = Modifier.fillMaxWidth().clip(BottomArcShapeArScan(arcHeight = 22.dp))
             .background(Brush.linearGradient(colors = listOf(Color(0xFF4C68D7), Color(0xFF8A54C8))))
     ) {
-        Column(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 72.dp, bottom = 32.dp)) {
+        Column(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 42.dp, bottom = 32.dp)) {
             Text("AR Scan Mode", color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
             Text("Point camera at monuments or upload images to discover their stories", color = Color.White.copy(alpha = 0.9f), fontSize = 15.sp)
         }

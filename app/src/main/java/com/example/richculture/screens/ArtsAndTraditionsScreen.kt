@@ -64,7 +64,7 @@ fun ArtsAndTraditionsScreen(
     artViewModel: ArtViewModel = viewModel(),
     musicViewModel: MusicViewModel = viewModel()
 ) {
-    var selectedCategory by remember { mutableStateOf(ArtCategory.Arts) }
+    var selectedCategory by remember { mutableStateOf(ArtCategory.Dance) }
 
     // Fetch data when the screen is first composed
     LaunchedEffect(Unit) {
@@ -89,7 +89,7 @@ fun ArtsAndTraditionsScreen(
     ) {
         Scaffold(
             topBar = { ArtsTopAppBar(navController) },
-            containerColor = Color.Transparent
+            containerColor = Color.Transparent,
         ) { padding ->
             LazyColumn(
                 modifier = Modifier
@@ -144,7 +144,7 @@ fun ArtsAndTraditionsScreen(
 fun ArtsTopAppBar(navController: NavController) {
     // A custom Top App Bar implementation using a Card to support a custom shape.
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().statusBarsPadding(),
         shape = BottomArcShapeArts(arcHeight = 30.dp),
         elevation = CardDefaults.cardElevation(8.dp),
     ) {
@@ -168,7 +168,7 @@ fun ArtsTopAppBar(navController: NavController) {
                     )
                 }
                 Text(
-                    "Arts & Traditions 🎭",
+                    "Arts & Traditions ",
                     fontWeight = FontWeight.Bold,
                     fontSize = 22.sp,
                     color = Color.White,
