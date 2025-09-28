@@ -16,7 +16,7 @@ object RetrofitInstance {
     private const val AZADI_CHAT_URL = "https://bose-glq9.onrender.com/"
     private const val TRAVEL_PLANNER_URL = "https://travel-planner-h31c.onrender.com/"
     private const val MONUMENT_CHAT_URL = "https://kalam-0bny.onrender.com/"
-    private const val EVENTS_URL = "https://event-ugfy.onrender.com/" // ✅ Added Events API base
+    private const val EVENTS_URL = "https://event-ugfy.onrender.com/"
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
@@ -31,12 +31,11 @@ object RetrofitInstance {
             .build()
     }
 
-    // --- Special client for slow Events API (longer timeout) ---
     private val eventsClient by lazy {
         OkHttpClient.Builder()
-            .connectTimeout(5, TimeUnit.MINUTES) // ⏳ connect timeout
-            .readTimeout(5, TimeUnit.MINUTES)    // ⏳ read timeout
-            .writeTimeout(5, TimeUnit.MINUTES)   // ⏳ write timeout
+            .connectTimeout(5, TimeUnit.MINUTES)
+            .readTimeout(5, TimeUnit.MINUTES)
+            .writeTimeout(5, TimeUnit.MINUTES)
             .addInterceptor(loggingInterceptor)
             .build()
     }
@@ -55,7 +54,7 @@ object RetrofitInstance {
     private val travelPlannerRetrofit by lazy { createRetrofit(TRAVEL_PLANNER_URL) }
     private val azadiChatRetrofit by lazy { createRetrofit(AZADI_CHAT_URL) }
     private val monumentChatRetrofit by lazy { createRetrofit(MONUMENT_CHAT_URL) }
-    private val eventsRetrofit by lazy { createRetrofit(EVENTS_URL, eventsClient) } // ✅ Events Retrofit
+    private val eventsRetrofit by lazy { createRetrofit(EVENTS_URL, eventsClient) }
 
     // --- APIs from the main BASE_URL ---
     val monumentApi: MonumentApi by lazy { retrofit.create(MonumentApi::class.java) }
@@ -71,7 +70,7 @@ object RetrofitInstance {
     val scannerApi : ScannerApi by lazy { retrofit.create(ScannerApi::class.java) }
 
     // --- APIs from their specific URLs ---
-    val tripApi: TravelPlannerApi by lazy { travelPlannerRetrofit.create(TravelPlannerApi::class.java) }
+    val tripApi: TripApi by lazy { travelPlannerRetrofit.create(TripApi::class.java) }
     val chatApi: ChatApi by lazy { tourGuideChatRetrofit.create(ChatApi::class.java) } // General Assistant
     val azadiChatApi: AzadiChatApi by lazy { azadiChatRetrofit.create(AzadiChatApi::class.java) } // Chat with Leaders
     val monumentChatApi: MonumentChatApi by lazy { monumentChatRetrofit.create(MonumentChatApi::class.java) } // Chat with Monuments
@@ -79,6 +78,8 @@ object RetrofitInstance {
     // Baazaar
     val bazaarApi: BazaarApi by lazy { retrofit.create(BazaarApi::class.java) }
 
-    // ✅ Events API
+    // Events API
+    // ✅ FIX: Removed the duplicate `eventsApi` definition.
     val eventsApi: EventsApi by lazy { eventsRetrofit.create(EventsApi::class.java) }
 }
+

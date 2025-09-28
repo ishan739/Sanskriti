@@ -20,5 +20,5 @@ data class Place(
 data class TripRequest(
     val message: String,
     val role: String,
-    val conversation_id: String
+    val conversation_id: String // ✅ make sure the underscore is exactly as backend expects
 )
