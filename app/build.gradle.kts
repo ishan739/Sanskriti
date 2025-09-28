@@ -40,6 +40,8 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.browser)
+
 //    Pull to refresh
     implementation(libs.androidx.compose.material)
 

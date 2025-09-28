@@ -464,8 +464,7 @@ fun QuickActionsGrid(navController: NavController) {
         UpcomingEventsCard(
             action = upcomingEventsAction,
             onClick = {
-                // No navigation yet - you can add a toast or leave empty
-                // Toast.makeText(context, "Coming Soon!", Toast.LENGTH_SHORT).show()
+                navController.navigate(Screen.Trip.route)
             }
         )
     }

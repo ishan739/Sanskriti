@@ -91,7 +91,7 @@ fun ArScanScreen(
     )
 
     Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F7FC))) {
-        LazyColumn(modifier = Modifier.fillMaxSize().statusBarsPadding(), contentPadding = PaddingValues(bottom = 20.dp)) {
+        LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 20.dp)) {
             item { ArScanHeader() }
             item {
                 Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {

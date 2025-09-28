@@ -39,12 +39,17 @@ espressoCore = "3.7.0"
 runtimeLivedata = "1.9.1"
 animation = "1.9.1"
 
+browser = "1.8.0"
+
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 
 [libraries]
+androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
+
 # Core
 androidx-camera-camera2-v131 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCamera2" }
 androidx-camera-core-v131 = { module = "androidx.camera:camera-core", version.ref = "cameraxVersion" }

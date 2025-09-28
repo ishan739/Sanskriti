@@ -1,9 +1,13 @@
 package com.example.richculture.Data
 
-data class City(
-    var city : String
-)
+import com.google.gson.annotations.SerializedName
 
 data class Event(
-    var booking_link : String
+    val name: String,
+    @SerializedName("booking_link") val bookingLink: String
 )
+
+data class EventRequest(
+    val city: String
+)
+
