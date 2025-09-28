@@ -1,5 +1,6 @@
 package com.example.richculture.navigation
 
+import android.app.Activity
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.Crossfade
@@ -9,12 +10,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import android.graphics.Color as AndroidColor
+import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.richculture.ViewModels.MainViewModel
@@ -45,24 +49,26 @@ fun MainAppScaffold(mainViewModel: MainViewModel) {
                         BottomNavBar(navController)
                     }
                 },
-                containerColor = Color.Transparent,
-                // ✅ CRITICAL: Let Scaffold handle window insets properly for immersive mode
-                contentWindowInsets = WindowInsets(0, 0, 0, 0)
+                containerColor = ComposeColor.Transparent,
+                // ✅ CRITICAL: Respect status bar but hide navigation bar
+                contentWindowInsets = WindowInsets.statusBars
             ) { innerPadding ->
-                // ✅ FIXED: Use ALL padding values from Scaffold, including bottom padding
+                // ✅ This will now properly account for the status bar space
                 NavigationGraph(
                     navController = navController,
-                    modifier = Modifier.padding(innerPadding), // This includes bottom padding for nav bar
+                    modifier = Modifier.padding(innerPadding), // This includes status bar padding
                     startDestination = destination
                 )
             }
         } else {
-            // This is the loading state UI shown before the ViewModel decides the destination.
-            Box(
+            // Loading state - also needs to respect status bar
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFFFFF8F5)),
-                contentAlignment = Alignment.Center
+                    .statusBarsPadding() // Add status bar padding
+                    .background(ComposeColor(0xFFFFF8F5)),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 CircularProgressIndicator()
             }

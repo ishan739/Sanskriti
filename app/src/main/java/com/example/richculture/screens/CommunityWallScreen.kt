@@ -132,7 +132,6 @@ fun CommunityWallScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .statusBarsPadding() // Add status bar padding
                 .pullRefresh(pullRefreshState)
         ) {
             LazyColumn(
@@ -392,7 +391,7 @@ fun CommunityTopAppBar(navController: NavController) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp)
+            .height(100.dp)
     ) {
         // Modern gradient background
         Box(
@@ -413,8 +412,7 @@ fun CommunityTopAppBar(navController: NavController) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp)
-                .statusBarsPadding(),
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(

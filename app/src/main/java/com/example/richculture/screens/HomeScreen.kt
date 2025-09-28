@@ -127,8 +127,7 @@ fun HomeScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(screenBackgroundBrush)
-                .statusBarsPadding(),
+                .background(screenBackgroundBrush),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item { MainTopAppBar(navController, userName = currentUser?.name, profileImageUrl = currentUser?.profileImage) }

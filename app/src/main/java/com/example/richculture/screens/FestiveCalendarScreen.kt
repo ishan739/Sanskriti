@@ -266,7 +266,6 @@ fun ModernFestivalTopBar(
                     ),
                     shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)
                 )
-                .statusBarsPadding()
                 .padding(20.dp)
         ) {
             Row(

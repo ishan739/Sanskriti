@@ -102,7 +102,6 @@ fun ProfileScreen(
     DynamicGradientBackground()
 
     Scaffold(
-        modifier = Modifier.systemBarsPadding(),
         topBar = {
             ModernTopBar(onBackClick = { navController.popBackStack() })
         },

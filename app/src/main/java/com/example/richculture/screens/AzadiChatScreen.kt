@@ -58,7 +58,6 @@ fun HeaderSection(navController: NavController) {
             .fillMaxWidth()
             .height(220.dp)
             .background(headerBrush, shape = RoundedCornerShape(bottomStart = 48.dp, bottomEnd = 48.dp))
-            .statusBarsPadding()
     ) {
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             Row(

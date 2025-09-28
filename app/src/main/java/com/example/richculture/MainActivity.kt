@@ -14,6 +14,7 @@ import com.example.richculture.ViewModels.MainViewModel
 import com.example.richculture.navigation.MainAppScaffold
 import com.example.richculture.ui.theme.RichCultureTheme
 import org.koin.androidx.compose.koinViewModel
+import android.graphics.Color
 
 class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
@@ -22,6 +23,8 @@ class MainActivity : ComponentActivity() {
 
         // Enable edge-to-edge content
         enableEdgeToEdge()
+
+        // ✅ Let the system windows draw behind system bars
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
@@ -41,6 +44,7 @@ class MainActivity : ComponentActivity() {
             // Modern API (Android 11+)
             window.insetsController?.let { controller ->
                 controller.hide(WindowInsets.Type.navigationBars())
+                controller.show(WindowInsets.Type.statusBars())
                 controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             }
         } else {
@@ -48,10 +52,8 @@ class MainActivity : ComponentActivity() {
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = (
                     View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                            or View.SYSTEM_UI_FLAG_FULLSCREEN
                             or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                             or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                             or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                     )
         }
