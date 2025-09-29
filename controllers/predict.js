@@ -13,10 +13,10 @@ export const detectMonument = async (req, res) => {
             return res.status(400).json({ error: "No image uploaded" });
         }
 
-        // Save path of uploaded file
+       
         filePath = path.join(process.cwd(), req.file.path);
 
-        // Send file to FastAPI
+       
         const formData = new FormData();
         formData.append("file", fs.createReadStream(filePath));
 
