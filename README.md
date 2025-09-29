@@ -38,6 +38,8 @@ Sanskriti brings together **monuments, festivals, foods, art, music, dance, and 
 ---
 
 ## 📂 Repository Structure  
+
+```yaml
 Sanskriti:
   config: # DB, Cloudinary, Token, Mail, Calendarific configs
     - calendarific.js
@@ -116,5 +118,3 @@ Sanskriti:
   index.js: "App entry point"
   package.json: "Dependencies & scripts"
   .gitignore: "Ignored files"
-
-
