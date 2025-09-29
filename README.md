@@ -38,4 +38,83 @@ Sanskriti brings together **monuments, festivals, foods, art, music, dance, and 
 ---
 
 ## 📂 Repository Structure  
+Sanskriti:
+  config: # DB, Cloudinary, Token, Mail, Calendarific configs
+    - calendarific.js
+    - cloudinary.js
+    - db.js
+    - generateToken.js
+    - mail.js
+
+  controllers: # Business logic for modules
+    - Art.controller.js
+    - calender.js
+    - cart.controller.js
+    - Dance.controller.js
+    - event.controller.js
+    - Festival.controller.js
+    - Food.controller.js
+    - item.controller.js
+    - Monument.controller.js
+    - Music.controller.js
+    - Post.controller.js
+    - predict.js
+    - Story.controller.js
+    - user.controller.js
+
+  dataset: # CSV datasets (arts, festivals, food, monuments, etc.)
+    - art.csv
+    - dance.csv
+    - festivals.csv
+    - food.csv
+    - foods.csv
+    - india_200_monuments.csv
+    - music.csv
+    - story.csv
+
+  middlewares: # Auth, validation, multer
+    - authMiddleware.js
+    - isAdmin.js
+    - multer.js
+    - validateRequest.js
+
+  models: # Mongoose schemas
+    - art.js
+    - cart.js
+    - dance.js
+    - Festival.js
+    - food.js
+    - item.js
+    - Monument.js
+    - music.js
+    - post.js
+    - story.js
+    - user.js
+
+  routes: # REST API endpoints
+    - art.route.js
+    - calender.route.js
+    - cart.route.js
+    - dance.route.js
+    - event.route.js
+    - festival.route.js
+    - food.route.js
+    - item.route.js
+    - monument.route.js
+    - music.route.js
+    - post.route.js
+    - predict.route.js
+    - story.route.js
+    - user.route.js
+
+  validation: # Joi/validator schemas
+    - userValidation.js
+
+  public: # Static files
+    - .gitkeep
+
+  index.js: "App entry point"
+  package.json: "Dependencies & scripts"
+  .gitignore: "Ignored files"
+
 
