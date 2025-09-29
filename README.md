@@ -183,3 +183,14 @@ Base URL: `http://localhost:8080/`
 
 ---
 
+---
+
+## 🛠️ Future Enhancements  
+
+- 📑 **Swagger API Docs** – Auto-generated API documentation for easier testing & integration  
+- 🧪 **Unit & Integration Tests** – Ensure reliability & maintainability of backend services  
+- 🔑 **Role-Based Access Control (RBAC)** – Different roles for `admin`, `vendor`, and `user`  
+- 💳 **Payment Gateway Integration** – Enable secure online payments in **Sanskriti Bazar**  
+- 🐳 **Docker Containerization** – Simplify deployment & scaling across environments  
+
+---
