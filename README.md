@@ -127,3 +127,37 @@ Sanskriti/
 - **Validation:** Custom & Joi  
 
 ---
+
+## 🚀 Getting Started  
+
+### 1️⃣ Clone the repository  
+```bash
+git clone https://github.com/arpitsha26/Sanskriti.git
+```
+### 2️⃣ Install dependencies
+```bash
+npm install
+```
+### 3️⃣ Environment Variables
+Create a .env file with:
+```bash
+MONGODB_URL=your_mongodb_connection_string
+PORT=5000
+
+JWT_SECRET=your_jwt_secret
+
+CLOUDINARY_CLOUD_NAME=your_cloudinary_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+
+CALENDARIFIC_API_KEY=your_calendarific_api_key
+GOOGLE_CLIENT_ID=your_google_client_id
+
+EMAIL=your_email@example.com
+EMAIL_PASS=your_email_password_or_app_password
+```
+### 4️⃣ Run the backend server
+```bash
+npm run dev
+```
+
