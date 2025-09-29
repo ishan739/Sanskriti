@@ -194,3 +194,33 @@ Base URL: `http://localhost:8080/`
 - 🐳 **Docker Containerization** – Simplify deployment & scaling across environments  
 
 ---
+
+---
+
+## 📜 License  
+
+This project is licensed under the **MIT License** – see the [LICENSE](LICENSE) file for details.  
+
+---
+
+---
+
+## 🤝 Contributing  
+
+Contributions are welcome! 🎉 If you’d like to help improve **Sanskriti Backend**, please follow these steps:  
+
+1. **Fork** the repository  
+2. **Create a new branch** (`git checkout -b feature/YourFeatureName`)  
+3. **Commit your changes** (`git commit -m "Add some feature"`)  
+4. **Push to your branch** (`git push origin feature/YourFeatureName`)  
+5. **Open a Pull Request** describing your changes  
+
+### Contribution Guidelines  
+- Follow the existing **code style & folder structure**  
+- Write **clear commit messages**  
+- Add **comments/documentation** where necessary  
+- Ensure that all existing tests (if any) pass before submitting a PR  
+- Be respectful and collaborative in discussions 🙏  
+
+By contributing, you agree that your contributions will be licensed under the same **MIT License** as the project.  
+
