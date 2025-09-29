@@ -160,4 +160,26 @@ EMAIL_PASS=your_email_password_or_app_password
 ```bash
 npm run dev
 ```
+## 📡 API Endpoints  
+
+Base URL: `http://localhost:8080/`
+
+| Module       | Endpoint             | Description                                |
+|--------------|----------------------|--------------------------------------------|
+| Monuments    | `/api/monument`      | Explore monuments (filter by district, etc.) |
+| Festivals    | `/api/festival`      | Get details of Indian festivals             |
+| Foods        | `/api/food`          | Discover traditional foods                  |
+| Stories      | `/api/story`         | Access folk tales, epics, and myths         |
+| Dance        | `/api/dance`         | Explore Indian classical & folk dances      |
+| Art          | `/api/art`           | View traditional paintings & artforms       |
+| Music        | `/api/music`         | Access Indian music heritage                |
+| Calendar     | `/api/cal`           | Festival & holiday calendar (Calendarific API) |
+| Users        | `/api/user`          | User registration, login, profile, auth     |
+| Posts        | `/api/post`          | Community hub – upload, like, comment       |
+| Predict      | `/api/predict`       | ML-powered monument recognition (AR Scan)   |
+| Events       | `/api/event`         | Upcoming cultural events                    |
+| Items        | `/api/item`          | Marketplace items (handicrafts, etc.)       |
+| Cart         | `/api/cart`          | Shopping cart for Sanskriti Bazar           |
+
+---
 
