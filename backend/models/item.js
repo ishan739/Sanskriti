@@ -9,7 +9,7 @@ const itemSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ["Handicraft", "Painting", "Textile", "Jewelry", "Sculpture", "Other"],
+      enum: ["Handicraft", "Painting", "Textile", "Jewelry", "Sculpture", "Other"  ],
       required: true,
     },
     description: {
