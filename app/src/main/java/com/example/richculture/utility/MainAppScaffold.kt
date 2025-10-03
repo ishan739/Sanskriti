@@ -1,0 +1,77 @@
+package com.example.richculture.navigation
+
+import android.app.Activity
+import android.os.Build
+import androidx.annotation.RequiresApi
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
+import android.graphics.Color as AndroidColor
+import androidx.compose.ui.graphics.Color as ComposeColor
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.example.richculture.ViewModels.MainViewModel
+import com.example.richculture.navigate.NavigationGraph
+import com.example.richculture.navigate.Screen
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun MainAppScaffold(mainViewModel: MainViewModel) {
+    val startDestination by mainViewModel.startDestination.collectAsState()
+
+    Crossfade(targetState = startDestination, animationSpec = tween(500), label = "AppStartAnimation") { destination ->
+        if (destination != null) {
+            val navController = rememberNavController()
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentRoute = navBackStackEntry?.destination?.route
+
+            val bottomNavRoutes = setOf(
+                Screen.Home.route,
+                Screen.Bazaar.route,
+                Screen.Trip.route,
+                Screen.CommunityWall.route
+            )
+
+            Scaffold(
+                bottomBar = {
+                    if (currentRoute in bottomNavRoutes) {
+                        BottomNavBar(navController)
+                    }
+                },
+                containerColor = ComposeColor.Transparent,
+                // ✅ CRITICAL: Respect status bar but hide navigation bar
+                contentWindowInsets = WindowInsets.statusBars
+            ) { innerPadding ->
+                // ✅ This will now properly account for the status bar space
+                NavigationGraph(
+                    navController = navController,
+                    modifier = Modifier.padding(innerPadding), // This includes status bar padding
+                    startDestination = destination
+                )
+            }
+        } else {
+            // Loading state - also needs to respect status bar
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding() // Add status bar padding
+                    .background(ComposeColor(0xFFFFF8F5)),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+    }
+}
